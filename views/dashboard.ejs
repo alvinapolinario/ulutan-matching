@@ -1,0 +1,13 @@
+<%- include('partials/head') %>
+<div class="d-flex align-items-center mb-3 gap-2">
+  <h1 class="page-title"><%= event.name %></h1>
+  <span id="liveDot" class="live-dot" title="Connecting…"></span>
+  <span class="text-muted ms-2"><%= [event.venue, event.date].filter(Boolean).join(' · ') %></span>
+</div>
+<div class="row g-3 mb-3" id="stats"></div>
+<div class="row g-3">
+  <div class="col-md-4"><a class="card p-3 text-decoration-none text-dark h-100" href="/registration"><div class="fw-bold">Registration</div><div class="small text-muted">Add entries — legband numbers are issued automatically.</div></a></div>
+  <div class="col-md-4"><a class="card p-3 text-decoration-none text-dark h-100" href="/matching"><div class="fw-bold">Matching</div><div class="small text-muted">Type Red and Blue legbands, check, confirm.</div></a></div>
+  <div class="col-md-4"><a class="card p-3 text-decoration-none text-dark h-100" href="/display-control"><div class="fw-bold">TV Control</div><div class="small text-muted">Current fight, results, next fight.</div></a></div>
+</div>
+<%- include('partials/foot', { scripts: ['dashboard.js'] }) %>

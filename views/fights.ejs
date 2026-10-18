@@ -1,0 +1,28 @@
+<%- include('partials/head') %>
+<div class="d-flex align-items-center mb-3 gap-2 flex-wrap">
+  <h1 class="page-title">Official Fight List</h1>
+  <span id="liveDot" class="live-dot" title="Connecting…"></span>
+  <div class="ms-auto d-flex gap-2 flex-wrap">
+    <a class="btn btn-sm btn-outline-dark" href="/reports/fights" target="_blank">Print fight list</a>
+    <a class="btn btn-sm btn-outline-dark" href="/reports/fights?format=csv">Export CSV</a>
+    <a class="btn btn-sm btn-outline-dark" href="/reports/sequence" target="_blank">Print sequence</a>
+    <% if (user.role === 'ADMIN') { %><a class="btn btn-sm btn-outline-dark" href="/reports/audit" target="_blank">Audit trail</a><% } %>
+  </div>
+</div>
+<div class="card">
+  <div class="card-header bg-white d-flex flex-wrap gap-2 align-items-center">
+    <input class="form-control form-control-sm" style="max-width:260px" id="search" placeholder="Search legband, entry or fight no." aria-label="Search fights">
+    <select class="form-select form-select-sm" style="max-width:170px" id="statusFilter" aria-label="Filter by status">
+      <option value="">All statuses</option><option>CONFIRMED</option><option>COMPLETED</option><option>CANCELLED</option>
+    </select>
+    <span class="small text-muted ms-auto" id="counts"></span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0">
+      <thead><tr><th>Order</th><th>Fight</th><th>Red Entry</th><th>Red LB</th><th>Blue Entry</th><th>Blue LB</th><th>Status</th><th>Result</th><th class="text-end">Actions</th></tr></thead>
+      <tbody id="fightRows"><tr><td colspan="9" class="text-muted">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+<p class="small text-muted mt-2 mb-0">Order is the running order on the TV. Highlighted row = current fight. Cancelled fights keep their number and their legbands can no longer be used.</p>
+<%- include('partials/foot', { scripts: ['fights.js'] }) %>

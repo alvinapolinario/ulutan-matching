@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <title><%= typeof title !== 'undefined' ? title + ' · ' : '' %>Ulutan</title>
+  <link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/static/css/app.css?v=<%= locals.v || '' %>">
+</head>
+<body data-event-id="<%= event ? event.id : '' %>" data-role="<%= user ? user.role : '' %>" data-legband-width="<%= event ? event.legbandWidth : 3 %>" data-legband-mode="<%= event ? (event.legbandMode || 'MANUAL') : 'MANUAL' %>" data-fight-mode="<%= event ? (event.fightNumberMode || 'DRAW') : 'DRAW' %>">
+<% const nav = [
+  ['/', 'Dashboard'], ['/registration', 'Registration'], ['/matching', 'Matching'], ['/fights', 'Fight List'], ['/gamecocks', 'Gamecocks'],
+  ['/display-control', 'TV Control'], ['/reports', 'Reports'] ];
+   if (user && user.role === 'ADMIN') { nav.push(['/events', 'Events'], ['/users', 'Users']); }
+   const statusClass = { DRAFT: 'secondary', REGISTRATION_OPEN: 'info', MATCHING_OPEN: 'warning', ACTIVE: 'success', COMPLETED: 'dark', ARCHIVED: 'light' }; %>
+<nav class="navbar navbar-expand-xl navbar-dark bg-dark d-print-none app-nav">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-bold" href="/">ULUTAN</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-label="Menu"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav me-auto">
+        <% nav.forEach(([href, label]) => { %>
+          <li class="nav-item"><a class="nav-link <%= path === href ? 'active' : '' %>" href="<%= href %>"><%= label %></a></li>
+        <% }) %>
+        <li class="nav-item"><a class="nav-link" href="/display<%= event ? '?event=' + event.id : '' %>" target="_blank" rel="noopener">TV Display ↗</a></li>
+      </ul>
+      <% if (events.length) { %>
+      <form method="post" action="/select-event" class="d-flex align-items-center me-3 my-2 my-xl-0">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="back" value="<%= path %>">
+        <select name="eventId" class="form-select form-select-sm event-select" aria-label="Working event" data-autosubmit>
+          <% events.forEach(e => { %><option value="<%= e.id %>" <%= event && e.id === event.id ? 'selected' : '' %>><%= e.name %> (<%= e.date %>)</option><% }) %>
+        </select>
+        <% if (event) { %><span class="badge text-bg-<%= statusClass[event.status] %> ms-2"><%= event.status.replace('_', ' ') %></span><% } %>
+      </form>
+      <% } %>
+      <form method="post" action="/logout" class="d-flex align-items-center">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <span class="navbar-text small me-2"><%= user.username %> · <%= user.role.toLowerCase() %></span>
+        <button class="btn btn-sm btn-outline-light">Log out</button>
+      </form>
+    </div>
+  </div>
+</nav>
+<div class="toast-container position-fixed top-0 end-0 p-3 d-print-none" id="toasts"></div>
+<main class="container-fluid py-3">
+<% if (locals.weakAccounts && weakAccounts.length) { %>
+<div class="alert alert-danger d-print-none py-2" role="alert">
+  <b>Security:</b> these accounts still use a demo or easy password: <b><%= weakAccounts.join(', ') %></b>.
+  Change them in <a href="/users" class="alert-link">Users</a> before the event.
+</div>
+<% } %>

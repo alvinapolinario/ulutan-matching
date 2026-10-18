@@ -1,0 +1,95 @@
+/* MERON (red) / WALA (blue) side screens. Fixed 1920x1080 stage scaled to the screen. */
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; cursor: none; }
+body { font-family: "Arial Black", "Helvetica Neue", Arial, sans-serif; color: #fff; }
+body.meron { background: #b81c1c; }
+body.wala { background: #1d4fb8; }
+.stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; display: flex; flex-direction: column; align-items: center; }
+.hidden { display: none !important; }
+
+/* White letters with a thin black outline, like the reference screen */
+.side-title, .side-entry, .score {
+  color: #fff;
+  -webkit-text-stroke: 3px #111;
+  paint-order: stroke fill;
+}
+.side-title { font-size: 400px; font-weight: 900; line-height: 1; letter-spacing: .06em; margin-top: 50px; font-family: Arial, "Helvetica Neue", sans-serif; }
+.side-entry { font-size: 120px; font-weight: 900; line-height: 1.1; margin-top: 30px; max-width: 1800px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; -webkit-text-stroke-width: 2px; }
+.side-entry.idle { font-size: 44px; -webkit-text-stroke-width: 1px; margin-top: 120px; }
+
+.side-scores { display: flex; gap: 90px; margin-top: 50px; }
+.score-box { width: 420px; height: 340px; border: 10px solid #fff; border-radius: 28px; background: rgba(0, 0, 0, .22); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px #111 inset, 0 0 0 3px #111; }
+.score-box.fighting { border-color: #ffd43b; }
+.score { font-size: 260px; font-weight: 900; line-height: 1; font-family: Arial, "Helvetica Neue", sans-serif; -webkit-text-stroke-width: 4px; }
+.side-conn { position: absolute; right: 30px; bottom: 22px; font-size: 22px; font-family: Arial, sans-serif; background: rgba(0, 0, 0, .45); padding: 6px 16px; border-radius: 10px; }
+
+/* ---------- Result design ---------- */
+.win-frame, .sparkles, .stamp { position: absolute; pointer-events: none; opacity: 0; }
+.win-frame { inset: 0; border: 26px solid #ffd43b; box-shadow: inset 0 0 90px rgba(255, 212, 59, .75); }
+.stamp {
+  left: 50%; top: 250px; transform: translate(-50%, -50%) rotate(-8deg) scale(.4);
+  font-family: Arial, "Helvetica Neue", sans-serif; font-weight: 900; font-size: 230px; letter-spacing: .08em;
+  color: #ffd43b; -webkit-text-stroke: 6px #111; paint-order: stroke fill;
+  text-shadow: 0 0 40px rgba(255, 212, 59, .9), 0 12px 0 rgba(0, 0, 0, .35);
+  background: rgba(0, 0, 0, .35); padding: 10px 60px; border-radius: 30px; border: 10px solid #ffd43b;
+}
+.sparkles { inset: 0; }
+.sparkles i { position: absolute; width: 26px; height: 26px; border-radius: 50%; background: #ffe066; box-shadow: 0 0 22px 8px rgba(255, 224, 102, .8); }
+.sparkles i:nth-child(1) { left: 6%; top: 12%; } .sparkles i:nth-child(2) { left: 92%; top: 10%; }
+.sparkles i:nth-child(3) { left: 4%; top: 55%; } .sparkles i:nth-child(4) { left: 95%; top: 52%; }
+.sparkles i:nth-child(5) { left: 10%; top: 88%; } .sparkles i:nth-child(6) { left: 88%; top: 90%; }
+.sparkles i:nth-child(7) { left: 30%; top: 6%; } .sparkles i:nth-child(8) { left: 70%; top: 5%; }
+.sparkles i:nth-child(9) { left: 20%; top: 70%; } .sparkles i:nth-child(10) { left: 80%; top: 72%; }
+.sparkles i:nth-child(11) { left: 50%; top: 95%; } .sparkles i:nth-child(12) { left: 50%; top: 3%; }
+
+.out-win .win-frame { opacity: 1; animation: framePulse 1.2s ease-in-out infinite; }
+.out-win .stamp { opacity: 1; animation: stampIn .55s cubic-bezier(.2, 1.6, .4, 1) forwards, stampGlow 1.6s .6s ease-in-out infinite; }
+.out-win .sparkles { opacity: 1; }
+.out-win .sparkles i { animation: twinkle 1.4s ease-in-out infinite; }
+.out-win .sparkles i:nth-child(odd) { animation-delay: .7s; }
+.out-win .score-box { border-color: #ffd43b; }
+
+.out-draw .stamp { opacity: 1; color: #fff; border-color: #fff; text-shadow: 0 0 30px rgba(255, 255, 255, .8); animation: stampIn .55s cubic-bezier(.2, 1.6, .4, 1) forwards; }
+.out-lose > :not(.stamp):not(.side-conn) { filter: grayscale(.7) brightness(.5); transition: filter .6s; }
+
+@keyframes stampIn { to { transform: translate(-50%, -50%) rotate(-8deg) scale(1); } }
+@keyframes stampGlow { 0%, 100% { text-shadow: 0 0 30px rgba(255, 212, 59, .7), 0 12px 0 rgba(0, 0, 0, .35); } 50% { text-shadow: 0 0 80px rgba(255, 230, 120, 1), 0 12px 0 rgba(0, 0, 0, .35); } }
+@keyframes framePulse { 0%, 100% { border-color: #ffd43b; } 50% { border-color: #fff3bf; } }
+@keyframes twinkle { 0%, 100% { transform: scale(.4); opacity: .3; } 50% { transform: scale(1.3); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .out-win .win-frame, .out-win .stamp, .out-win .sparkles i, .out-draw .stamp { animation: none; transform: translate(-50%, -50%) rotate(-8deg); }
+  .out-win .win-frame { transform: none; }
+}
+/* While WINNER / DRAW is shown, fade the side title so the stamp reads cleanly. */
+.out-win .side-title, .out-draw .side-title { opacity: .14; transition: opacity .4s; }
+
+/* Address under the entry name */
+.side-addr { font-size: 58px; font-weight: 800; color: #fff; -webkit-text-stroke: 2px #111; paint-order: stroke fill; margin-top: 4px; max-width: 1800px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: Arial, "Helvetica Neue", sans-serif; }
+.side-addr:empty { display: none; }
+.side-title { font-size: 360px; margin-top: 40px; }
+.side-entry { margin-top: 20px; }
+.side-scores { margin-top: 36px; }
+.score-box { height: 300px; }
+.score { font-size: 230px; }
+.stamp { top: 200px; font-size: 200px; }
+
+/* ---------- Layout v3 ----------
+   MERON/WALA (center) / Entry name / Owner / [Address (left) | box | box | margin = 1 box] */
+.stage { --box: 330px; --gap: 36px; align-items: stretch; padding: 0 70px; }
+.side-title { font-size: 270px; margin-top: 30px; text-align: center; line-height: .95; }
+.side-entry { font-size: 108px; margin-top: 18px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: none; line-height: 1.08; }
+.side-entry.idle { font-size: 56px; margin-top: 140px; }
+.side-owner { font-size: 64px; font-weight: 800; color: #fff; -webkit-text-stroke: 2px #111; paint-order: stroke fill; text-align: center; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: Arial, "Helvetica Neue", sans-serif; }
+.side-owner:empty { display: none; }
+.side-body { flex: 1; display: grid; grid-template-columns: 1fr var(--box) var(--box) var(--box); column-gap: var(--gap); align-items: center; padding-bottom: 40px; min-height: 0; }
+.side-addr { font-size: 54px; text-align: left; margin-top: 0; white-space: normal; max-width: none; line-height: 1.15; }
+.side-addr:empty { display: block; }
+.side-scores { display: contents; }
+.score-box { width: var(--box); height: 300px; }
+.score { font-size: 220px; }
+.side-margin { width: var(--box); }
+.stamp { top: 150px; left: 50%; font-size: 150px; padding: 6px 50px; }
+/* keep sparkles off the address text */
+.sparkles i:nth-child(9) { left: 2%; top: 80%; } .sparkles i:nth-child(3) { left: 2%; top: 45%; }
+/* Bigger entry name (owner size unchanged) */
+.side-entry:not(.idle) { font-size: 132px; margin-top: 14px; -webkit-text-stroke-width: 3px; }

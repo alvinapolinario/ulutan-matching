@@ -1,0 +1,32 @@
+<%- include('partials/head') %>
+<div class="d-flex align-items-center mb-3 gap-2 flex-wrap">
+  <h1 class="page-title">Gamecocks</h1>
+  <span id="liveDot" class="live-dot" title="Connecting…"></span>
+  <div class="ms-auto d-flex gap-2 flex-wrap">
+    <a class="btn btn-sm btn-outline-dark" href="/reports/gamecocks" target="_blank">Print</a>
+    <a class="btn btn-sm btn-outline-dark" href="/reports/gamecocks?format=csv">Export CSV</a>
+  </div>
+</div>
+<div class="d-flex flex-wrap gap-2 mb-3" id="chips" role="group" aria-label="Filter by status"></div>
+<div class="card">
+  <div class="card-header bg-white d-flex flex-wrap gap-2 align-items-center">
+    <input class="form-control form-control-sm" style="max-width:280px" id="search" placeholder="Search legband, entry name, owner or fight no." aria-label="Search gamecocks">
+    <select class="form-select form-select-sm" style="max-width:190px" id="sortBy" aria-label="Sort">
+      <option value="legband">Sort by legband</option>
+      <option value="entry">Sort by entry name</option>
+      <option value="owner">Sort by owner</option>
+      <option value="fight">Sort by fight no.</option>
+    </select>
+    <span class="small text-muted ms-auto" id="counts"></span>
+  </div>
+  <div class="table-responsive" style="max-height:75vh">
+    <table class="table table-sm table-hover align-middle mb-0 gc-table">
+      <thead class="sticky-top bg-white"><tr>
+        <th style="width:90px">Legband</th><th>Entry Name</th><th style="width:100px">Entry No.</th><th>Owner</th>
+        <th style="width:150px">Status</th><th style="width:120px">Fight</th><th>Opponent</th>
+      </tr></thead>
+      <tbody id="gcRows"><tr><td colspan="7" class="text-muted">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+<%- include('partials/foot', { scripts: ['gamecocks.js'] }) %>

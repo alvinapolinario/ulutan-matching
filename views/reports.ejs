@@ -1,0 +1,31 @@
+<%- include('partials/head') %>
+<h1 class="page-title mb-3">Reports</h1>
+<% const list = [
+  ['registration', 'Registration Master List', 'All entries with both legband numbers'],
+  ['legbands', 'Legband Master List', 'Every legband with owner, status and fight'],
+  ['available', 'Available Legbands', 'Legbands not yet matched'],
+  ['gamecocks', 'Gamecock List', 'Every gamecock: owner, entry, legband, status and opponent'],
+  ['fights', 'Official Matching List', 'All official fights in fight-number order'],
+  ['cancelled', 'Cancelled Matches', 'With who cancelled and why'],
+  ['sequence', 'Fight Sequence', 'Running order with results'],
+  ['scores', 'Entry Scores', 'Every entry with its two score boxes (1, 0, ½)'],
+  ['standings', 'Standings', 'Points per entry: win 1, draw ½, loss 0'],
+  ['summary', 'Event Summary', 'Totals for the event'],
+  ['audit', 'Match Audit Report', 'Every change, who made it and why (admin)'],
+]; %>
+<div class="row g-3">
+  <% list.forEach(([key, title, desc]) => { if (key === 'audit' && user.role !== 'ADMIN') return; %>
+  <div class="col-md-6 col-xl-4">
+    <div class="card p-3 h-100">
+      <div class="fw-bold"><%= title %></div>
+      <div class="small text-muted mb-2"><%= desc %></div>
+      <div class="mt-auto d-flex gap-2">
+        <a class="btn btn-sm btn-dark" href="/reports/<%= key %>" target="_blank">View / Print</a>
+        <a class="btn btn-sm btn-outline-dark" href="/reports/<%= key %>?format=csv">CSV</a>
+      </div>
+    </div>
+  </div>
+  <% }) %>
+</div>
+<p class="small text-muted mt-3">CSV legband numbers are written so Excel and Google Sheets keep the leading zeros (001 stays 001).</p>
+<%- include('partials/foot') %>

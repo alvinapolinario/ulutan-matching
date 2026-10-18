@@ -1,0 +1,86 @@
+<%- include('partials/head') %>
+<div class="d-flex align-items-center mb-3 gap-2 flex-wrap">
+  <h1 class="page-title">Matching</h1>
+  <span id="liveDot" class="live-dot" title="Connecting…"></span>
+  <% const draw = (event.fightNumberMode || 'DRAW') === 'DRAW'; %>
+  <% if (draw) { %>
+  <span class="next-fight-hint ms-2">Fight number: <b class="text-dark">bunot (raffle)</b></span>
+  <span class="ms-auto small text-muted kbd-help">Red <kbd>Enter</kbd> → Blue <kbd>Enter</kbd> → nabunot na Fight No. <kbd>Enter</kbd> → check → <b>Confirm Match</b>. <kbd>Esc</kbd> = edit.</span>
+  <% } else { %>
+  <span class="next-fight-hint ms-2">Next fight number: <b id="nextFightNo" class="text-dark">—</b></span>
+  <span class="ms-auto small text-muted kbd-help">Type Red legband <kbd>Enter</kbd> → Blue legband <kbd>Enter</kbd> → check → <b>Confirm Match</b>. <kbd>Esc</kbd> goes back to edit.</span>
+  <% } %>
+</div>
+<div class="alert alert-warning d-none" id="closedNotice" role="alert"></div>
+
+<div class="row g-3 align-items-stretch" id="matchForm">
+  <div class="col-md">
+    <section class="corner red" aria-labelledby="redLabel">
+      <h2 id="redLabel">RED CORNER</h2>
+      <label for="redInput" class="form-label text-muted small mb-1">Legband number</label>
+      <input id="redInput" class="form-control corner-input" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="001" aria-describedby="redInfo">
+      <div id="redInfo" class="corner-info" aria-live="polite"><span class="text-muted">Type the Red legband and press Enter.</span></div>
+    </section>
+  </div>
+  <div class="col-md-auto d-flex align-items-center justify-content-center"><span class="confirm-vs">VS</span></div>
+  <div class="col-md">
+    <section class="corner blue" aria-labelledby="blueLabel">
+      <h2 id="blueLabel">BLUE CORNER</h2>
+      <label for="blueInput" class="form-label text-muted small mb-1">Legband number</label>
+      <input id="blueInput" class="form-control corner-input" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="002" aria-describedby="blueInfo">
+      <div id="blueInfo" class="corner-info" aria-live="polite"><span class="text-muted">Then type the Blue legband and press Enter.</span></div>
+    </section>
+  </div>
+</div>
+<% if (draw) { %>
+<div class="row justify-content-center mt-3">
+  <div class="col-md-6 col-lg-4">
+    <section class="corner fight" aria-labelledby="fightLabel">
+      <h2 id="fightLabel">FIGHT NO. <span class="small fw-semibold">(nabunot)</span></h2>
+      <label for="fightInput" class="form-label text-muted small mb-1">Type the number drawn in the raffle</label>
+      <input id="fightInput" class="form-control corner-input" inputmode="numeric" autocomplete="off" maxlength="4" placeholder="#" aria-describedby="fightInfo">
+      <div id="fightInfo" class="corner-info" aria-live="polite"><span class="text-muted">After Blue, type the drawn fight number and press Enter.</span></div>
+    </section>
+  </div>
+</div>
+<% } %>
+<div class="d-flex gap-2 mt-3">
+  <button class="btn btn-dark btn-lg" id="reviewBtn" type="button">Review Match</button>
+  <button class="btn btn-outline-secondary btn-lg" id="clearBtn" type="button">Clear</button>
+</div>
+
+<div class="card mt-4">
+  <div class="card-header bg-white d-flex align-items-center">
+    <span class="fw-bold">Latest official matches</span>
+    <a href="/fights" class="ms-auto small">Full fight list →</a>
+  </div>
+  <div class="table-responsive"><table class="table table-sm mb-0">
+    <thead><tr><th>Fight</th><th>Red Entry</th><th>Red LB</th><th>Blue Entry</th><th>Blue LB</th><th>Status</th><th>By</th></tr></thead>
+    <tbody id="recentRows"></tbody>
+  </table></div>
+</div>
+
+<div class="modal fade confirm-modal" id="confirmModal" tabindex="-1" aria-labelledby="confirmTitle" aria-modal="true" role="dialog" data-bs-backdrop="static">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="confirmTitle">CONFIRM MATCHING</h5>
+        <span class="ms-3 confirm-fight"><b id="confirmFightNo">Fight #—</b> <span class="small" id="confirmFightNote">(final number assigned on confirm)</span></span>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-danger d-none fw-semibold" id="confirmError" role="alert"></div>
+        <div class="row g-3 align-items-stretch">
+          <div class="col"><div class="confirm-side red" id="confirmRed"></div></div>
+          <div class="col-auto d-flex align-items-center"><span class="confirm-vs">VS</span></div>
+          <div class="col"><div class="confirm-side blue" id="confirmBlue"></div></div>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-outline-dark btn-lg" data-bs-dismiss="modal" id="editBtn">CANCEL / EDIT <span class="small">(Esc)</span></button>
+        <button type="button" class="btn btn-success btn-lg px-5 fw-bold" id="confirmBtn" disabled>CONFIRM MATCH</button>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('partials/foot', { scripts: ['matching.js'] }) %>

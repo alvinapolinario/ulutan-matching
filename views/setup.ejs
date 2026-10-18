@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>First-time setup · Ulutan</title><link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css"><link rel="stylesheet" href="/static/css/app.css?v=<%= locals.v || '' %>"></head>
+<body class="d-flex align-items-center justify-content-center" style="min-height:100vh">
+<form method="post" action="/setup" class="card p-4" style="width:100%;max-width:420px">
+  <h1 class="h4 fw-bold mb-1">First-time setup</h1>
+  <p class="text-muted small mb-3">Create the administrator account. You can add operators and TV display accounts afterwards.</p>
+  <% if (error) { %><div class="alert alert-danger py-2" role="alert"><%= error %></div><% } %>
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <label class="form-label" for="username">Admin username</label>
+  <input class="form-control mb-3" id="username" name="username" value="<%= username %>" required autofocus>
+  <label class="form-label" for="password">Password (at least 6 characters)</label>
+  <input class="form-control mb-3" id="password" type="password" name="password" minlength="6" required>
+  <label class="form-label" for="confirm">Repeat password</label>
+  <input class="form-control mb-3" id="confirm" type="password" name="confirm" minlength="6" required>
+  <button class="btn btn-dark w-100">Create administrator</button>
+</form>
+</body></html>

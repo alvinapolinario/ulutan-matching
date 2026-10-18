@@ -1,0 +1,35 @@
+{
+  "name": "ulutan",
+  "version": "1.0.0",
+  "description": "Tapad-Tapad / Ulutan registration, legband matching, fight management and real-time TV display (LAN, JSON file storage)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "demo": "node scripts/demo-seed.js",
+    "backup": "node scripts/backup.js",
+    "test": "node --test --test-timeout=60000 --test-concurrency=1 \"tests/**/*.test.js\"",
+    "seed": "node scripts/seed-matches.js",
+    "audit": "npm audit --omit=dev"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "bootstrap": "^5.3.8",
+    "ejs": "^3.1.10",
+    "express": "^4.22.3",
+    "express-rate-limit": "^7.5.1",
+    "express-session": "^1.19.0",
+    "helmet": "^8.3.0",
+    "socket.io": "^4.8.4"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.56.1",
+    "socket.io-client": "^4.8.4",
+    "supertest": "^7.3.1"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= side === 'meron' ? 'MERON' : 'WALA' %><%= displayEvent ? ' · ' + displayEvent.name : '' %></title>
+  <link rel="stylesheet" href="/static/css/tv-side.css?v=<%= locals.v || '' %>">
+</head>
+<body class="<%= side %>" data-event-id="<%= displayEvent ? displayEvent.id : '' %>" data-side="<%= side %>">
+<div id="stage" class="stage">
+  <div class="side-title"><%= side === 'meron' ? 'MERON' : 'WALA' %></div>
+  <div class="side-entry" id="entryName">NO ACTIVE FIGHT</div>
+  <div class="side-owner" id="entryOwner"></div>
+  <div class="side-body" id="sideBody">
+    <div class="side-addr" id="entryAddr"></div>
+    <div class="side-scores" id="scores">
+      <div class="score-box" id="box1"><span class="score" id="score1"></span></div>
+      <div class="score-box" id="box2"><span class="score" id="score2"></span></div>
+    </div>
+    <div class="side-margin" aria-hidden="true"></div>
+  </div>
+  <div class="win-frame" aria-hidden="true"></div>
+  <div class="sparkles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div class="stamp" id="stamp" role="status" aria-live="polite"></div>
+  <div id="conn" class="side-conn hidden">Reconnecting…</div>
+</div>
+<script src="/socket.io/socket.io.js"></script>
+<script src="/static/js/tv-side.js?v=<%= locals.v || '' %>"></script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fight Display<%= displayEvent ? ' · ' + displayEvent.name : '' %></title>
+  <link rel="stylesheet" href="/static/css/display.css?v=<%= locals.v || '' %>">
+</head>
+<body data-event-id="<%= displayEvent ? displayEvent.id : '' %>">
+<div id="stage" class="stage">
+  <header class="tv-head">
+    <div>
+      <div class="tv-event" id="evName"><%= displayEvent ? displayEvent.name : 'No event' %></div>
+      <div class="tv-sub" id="evSub"><%= displayEvent ? [displayEvent.venue, displayEvent.date].filter(Boolean).join(' · ') : '' %></div>
+    </div>
+    <div class="tv-clock" id="clock"></div>
+  </header>
+
+  <section id="live" class="tv-live hidden">
+    <div class="tv-now">
+      <div class="tv-label" id="nowLabel">NOW FIGHTING</div>
+      <div class="tv-fightno" id="nowNo"></div>
+      <div class="tv-result hidden" id="nowResult"></div>
+    </div>
+    <div class="tv-corners">
+      <div class="tv-corner red"><div class="tv-cname">MERON</div><div class="tv-entry" id="nowRedName"></div><div class="tv-addr" id="nowRedAddr"></div><div class="tv-lb" id="nowRedLb"></div></div>
+      <div class="tv-vs">VS</div>
+      <div class="tv-corner blue"><div class="tv-cname">WALA</div><div class="tv-entry" id="nowBlueName"></div><div class="tv-addr" id="nowBlueAddr"></div><div class="tv-lb" id="nowBlueLb"></div></div>
+    </div>
+    <div class="tv-bottom">
+      <div class="tv-next" id="nextWrap">
+        <div class="tv-label">NEXT FIGHT</div>
+        <div id="nextBody"></div>
+      </div>
+      <div class="tv-upcoming" id="upWrap">
+        <div class="tv-label">UPCOMING</div>
+        <table><tbody id="upRows"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <section id="standby" class="tv-standby">
+    <div class="tv-standby-title" id="standbyTitle">PLEASE STAND BY</div>
+    <div class="tv-standby-sub" id="standbySub">Fights will appear here shortly</div>
+  </section>
+  <div id="conn" class="tv-conn hidden">Reconnecting…</div>
+</div>
+<script src="/socket.io/socket.io.js"></script>
+<script src="/static/js/display.js?v=<%= locals.v || '' %>"></script>
+</body>
+</html>

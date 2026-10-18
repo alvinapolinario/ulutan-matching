@@ -1,0 +1,11 @@
+<%- include('partials/head') %>
+<div class="card p-4 mx-auto mt-4 text-center" style="max-width:560px">
+  <h1 class="h4 fw-bold">No event yet</h1>
+  <% if (user.role === 'ADMIN') { %>
+    <p>Create an event first. Registrations, legbands and fights all belong to an event.</p>
+    <a class="btn btn-dark" href="/events">Create an event</a>
+  <% } else { %>
+    <p>An administrator needs to create an event before you can work on <%= title.toLowerCase() %>.</p>
+  <% } %>
+</div>
+<%- include('partials/foot') %>

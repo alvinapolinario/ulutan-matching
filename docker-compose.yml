@@ -1,0 +1,12 @@
+services:
+  ulutan:
+    build: .
+    container_name: ulutan
+    restart: unless-stopped
+    ports:
+      - "3080:3080"
+    volumes:
+      - ./data:/app/data      # the JSON database, sessions and backups live here
+    environment:
+      - PORT=3080
+      - TZ=Asia/Manila

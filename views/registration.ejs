@@ -1,0 +1,95 @@
+<%- include('partials/head') %>
+<div class="d-flex align-items-center mb-3 gap-2 flex-wrap">
+  <h1 class="page-title">Registration</h1>
+  <span id="liveDot" class="live-dot" title="Connecting…"></span>
+  <div class="ms-auto d-flex gap-3 small text-muted" id="totals"></div>
+</div>
+<div class="row g-3">
+  <div class="col-xl-4 col-lg-5">
+    <form class="card p-3 reg-form" id="regForm" autocomplete="off" novalidate>
+      <h2 class="h6 fw-bold mb-3">New entry</h2>
+      <div class="alert alert-danger py-2 d-none" id="regError" role="alert"></div>
+      <label class="form-label" for="participantName">Participant (owner) name</label>
+      <input class="form-control mb-1" id="participantName" name="participantName" list="participantList" maxlength="100" required>
+      <datalist id="participantList"></datalist>
+      <div class="form-text mb-2">Same name = same owner. Pick an existing name to add another entry for that owner.</div>
+      <label class="form-label" for="entryName">Entry name</label>
+      <input class="form-control mb-2" id="entryName" name="entryName" maxlength="100" placeholder="Leave blank to use the owner's name">
+      <label class="form-label" for="address">Address</label>
+      <input class="form-control mb-1" id="address" name="address" maxlength="120" placeholder="e.g. Brgy. Poblacion, Iligan City" list="addressList">
+      <datalist id="addressList"></datalist>
+      <% const manualLb = (event.legbandMode || 'MANUAL') === 'MANUAL'; %>
+      <% if (manualLb) { %>
+      <div class="form-text mb-2">Shown under the entry name on the TV.</div>
+      <div class="row g-2">
+        <div class="col-6">
+          <label class="form-label" for="legband1">Legband 1</label>
+          <input class="form-control lb-input" id="legband1" name="legband1" inputmode="numeric" maxlength="6" placeholder="optional" aria-describedby="lb1Info">
+          <div class="small lb-info" id="lb1Info"></div>
+        </div>
+        <div class="col-6">
+          <label class="form-label" for="legband2">Legband 2</label>
+          <input class="form-control lb-input" id="legband2" name="legband2" inputmode="numeric" maxlength="6" placeholder="optional" aria-describedby="lb2Info">
+          <div class="small lb-info" id="lb2Info"></div>
+        </div>
+      </div>
+      <div class="form-text mb-3">Type the numbers printed on the bands from management, or leave them blank and add them later with <b>+ Legband</b>. <kbd>Enter</kbd> on Legband 2 (or on an empty Legband 1) saves.</div>
+      <% } else { %>
+      <div class="form-text mb-2">Shown under the entry name on the TV. Press <kbd>Enter</kbd> to save.</div>
+      <label class="form-label" for="legbandCount">Legbands to issue now</label>
+      <select class="form-select mb-3" id="legbandCount" name="legbandCount">
+        <option value="2">2 — complete entry</option>
+        <option value="1">1 — incomplete, add the 2nd later</option>
+      </select>
+      <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-3">
+        <span class="text-muted small">Next legband number(s)</span>
+        <span class="next-lb lb" id="nextLb">—</span>
+      </div>
+      <% } %>
+      <button class="btn btn-dark btn-lg" type="submit" id="regSubmit">Save entry</button>
+    </form>
+    <div class="card p-3 mt-3 d-none" id="lastSaved" aria-live="polite"></div>
+  </div>
+  <div class="col-xl-8 col-lg-7">
+    <div class="card">
+      <div class="card-header bg-white d-flex flex-wrap gap-2 align-items-center">
+        <input class="form-control form-control-sm" style="max-width:240px" id="search" placeholder="Search name, entry no. or legband" aria-label="Search entries">
+        <select class="form-select form-select-sm" style="max-width:160px" id="statusFilter" aria-label="Filter by status">
+          <option value="">All statuses</option><option>COMPLETE</option><option>INCOMPLETE</option><option>WITHDRAWN</option>
+        </select>
+        <div class="ms-auto d-flex gap-2">
+          <a class="btn btn-sm btn-outline-dark" href="/reports/registration" target="_blank">Print</a>
+          <a class="btn btn-sm btn-outline-dark" href="/reports/registration?format=csv">Export CSV</a>
+        </div>
+      </div>
+      <div class="table-responsive" style="max-height:70vh">
+        <table class="table table-sm table-hover mb-0">
+          <thead class="sticky-top bg-white"><tr><th>Entry No.</th><th>Entry Name</th><th>Participant</th><th>Legband 1</th><th>Legband 2</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+          <tbody id="entryRows"><tr><td colspan="7" class="text-muted">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editTitle" aria-modal="true" role="dialog">
+  <div class="modal-dialog"><form class="modal-content" id="editForm" novalidate autocomplete="off">
+    <div class="modal-header"><h5 class="modal-title" id="editTitle">Edit entry</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body">
+      <div class="alert alert-danger py-2 d-none" id="editError" role="alert"></div>
+      <div class="alert alert-warning py-2 d-none" id="editLocked">This entry already has an official match. The change is recorded in the audit trail.</div>
+      <input type="hidden" name="entryId">
+      <label class="form-label">Participant (owner) name</label><input class="form-control mb-2" name="participantName" list="participantList" required>
+      <label class="form-label">Entry name</label><input class="form-control mb-2" name="entryName" required>
+      <label class="form-label">Address</label><input class="form-control mb-2" name="address" maxlength="120">
+      <div class="row g-2 mb-2">
+        <div class="col-6"><label class="form-label">Legband 1</label><input class="form-control lb" name="legband1" inputmode="numeric" maxlength="6"></div>
+        <div class="col-6"><label class="form-label">Legband 2</label><input class="form-control lb" name="legband2" inputmode="numeric" maxlength="6"></div>
+      </div>
+      <div id="reasonWrap" class="d-none"><label class="form-label">Reason for correction</label><input class="form-control" name="reason"></div>
+      <p class="small text-muted mt-2 mb-0" id="editLegbands">A legband number can be corrected until it is used in a match.</p>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-dark" type="submit">Save</button></div>
+  </form></div>
+</div>
+<%- include('partials/foot', { scripts: ['registration.js'] }) %>

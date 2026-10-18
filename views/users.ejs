@@ -1,0 +1,27 @@
+<%- include('partials/head') %>
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header bg-white fw-bold">Users</div>
+      <div class="table-responsive"><table class="table table-sm mb-0">
+        <thead><tr><th>Username</th><th>Role</th><th>Status</th><th>Created</th><th class="text-end">Actions</th></tr></thead>
+        <tbody id="userRows"></tbody>
+      </table></div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <form class="card p-3" id="userForm">
+      <h2 class="h6 fw-bold">Add user</h2>
+      <label class="form-label">Username</label><input class="form-control mb-2" name="username" required autocomplete="off">
+      <label class="form-label">Password</label><input class="form-control mb-2" name="password" type="password" minlength="6" required autocomplete="new-password">
+      <label class="form-label">Role</label>
+      <select class="form-select mb-3" name="role">
+        <option value="OPERATOR">Operator — registration, matching, results</option>
+        <option value="ADMIN">Administrator — everything incl. corrections</option>
+        <option value="DISPLAY">Display — TV screen only</option>
+      </select>
+      <button class="btn btn-dark">Add user</button>
+    </form>
+  </div>
+</div>
+<%- include('partials/foot', { scripts: ['users.js'] }) %>

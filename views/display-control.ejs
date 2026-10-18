@@ -1,0 +1,114 @@
+<%- include('partials/head') %>
+<div class="d-flex align-items-center mb-3 gap-2 flex-wrap">
+  <h1 class="page-title">TV Control</h1>
+  <span id="liveDot" class="live-dot" title="Connecting…"></span>
+  <div class="ms-auto d-flex gap-2 flex-wrap">
+    <a class="btn btn-sm btn-outline-dark" href="/display?event=<%= event.id %>" target="_blank" rel="noopener">TV display ↗</a>
+    <a class="btn btn-sm btn-danger" href="/tv/meron?event=<%= event.id %>" target="_blank" rel="noopener">MERON screen ↗</a>
+    <a class="btn btn-sm btn-primary" href="/tv/wala?event=<%= event.id %>" target="_blank" rel="noopener">WALA screen ↗</a>
+    <div class="dropdown">
+      <button class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">Display settings</button>
+      <div class="dropdown-menu dropdown-menu-end p-3" style="width:320px">
+        <div class="form-check form-switch mb-2">
+          <input class="form-check-input" type="checkbox" role="switch" id="publishedSwitch">
+          <label class="form-check-label" for="publishedSwitch">Show fights on TV<br><span class="small text-muted">Off = “Please stand by” screen</span></label>
+        </div>
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <label for="upcomingCount" class="small">Upcoming fights on TV</label>
+          <input type="number" min="0" max="20" class="form-control form-control-sm" style="width:4.5rem" id="upcomingCount">
+          <button class="btn btn-sm btn-outline-dark" id="saveUpcoming">Save</button>
+        </div>
+        <button class="btn btn-sm btn-outline-danger w-100" id="refreshBtn">Reload all TV screens</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ACTIVE FIGHT -->
+<section class="card active-fight mb-3" aria-labelledby="activeTitle">
+  <div class="card-body">
+    <div class="d-flex align-items-center flex-wrap gap-2 mb-3">
+      <h2 class="h6 fw-bold mb-0 text-uppercase" id="activeTitle">Active fight</h2>
+      <span id="activeBadge"></span>
+      <div class="ms-auto btn-group">
+        <button class="btn btn-outline-dark" id="backBtn">← Previous</button>
+        <button class="btn btn-dark" id="nextBtn">Next fight →</button>
+      </div>
+    </div>
+    <div id="activeBox"></div>
+  </div>
+</section>
+
+<div class="row g-3">
+  <div class="col-xxl-8">
+    <!-- REMAINING MATCHES -->
+    <section class="card mb-3" aria-labelledby="remTitle">
+      <div class="card-header bg-white d-flex flex-wrap align-items-center gap-2">
+        <h2 class="h6 fw-bold mb-0 me-2" id="remTitle">Remaining matches <span class="badge text-bg-primary" id="remCount">0</span></h2>
+        <input class="form-control form-control-sm" style="max-width:260px" id="search" placeholder="Search fight no., entry or legband" aria-label="Search matches">
+        <span class="ms-auto small text-muted" id="counts"></span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 all-matches">
+          <thead><tr>
+            <th style="width:90px">Fight</th><th class="meron-h">MERON</th><th style="width:40px"></th><th class="wala-h">WALA</th>
+            <th class="text-end" style="width:300px">Options</th>
+          </tr></thead>
+          <tbody id="remRows"><tr><td colspan="5" class="text-muted">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- FINISHED + CANCELLED (accordion) -->
+    <div class="accordion" id="doneAcc">
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#doneBody" aria-expanded="false" aria-controls="doneBody">
+            Finished matches <span class="badge text-bg-success ms-2" id="doneCount">0</span>
+          </button>
+        </h2>
+        <div id="doneBody" class="accordion-collapse collapse">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover align-middle mb-0 all-matches">
+              <thead><tr><th style="width:90px">Fight</th><th class="meron-h">MERON</th><th style="width:40px"></th><th class="wala-h">WALA</th><th style="width:150px">Result</th><th class="text-end" style="width:160px">Options</th></tr></thead>
+              <tbody id="doneRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#cancelBody" aria-expanded="false" aria-controls="cancelBody">
+            Cancelled matches <span class="badge text-bg-secondary ms-2" id="cancelCount">0</span>
+          </button>
+        </h2>
+        <div id="cancelBody" class="accordion-collapse collapse">
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0 all-matches">
+              <thead><tr><th style="width:90px">Fight</th><th class="meron-h">MERON</th><th style="width:40px"></th><th class="wala-h">WALA</th><th>Reason</th></tr></thead>
+              <tbody id="cancelRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ENTRY SCORES -->
+  <div class="col-xxl-4">
+    <section class="card scores-card" aria-labelledby="scoreTitle">
+      <div class="card-header bg-white d-flex align-items-center gap-2">
+        <h2 class="h6 fw-bold mb-0" id="scoreTitle">Entry scores</h2>
+        <input class="form-control form-control-sm ms-auto" style="max-width:170px" id="scoreSearch" placeholder="Search entry" aria-label="Search entries">
+        <a class="btn btn-sm btn-outline-dark" href="/reports/scores" target="_blank" title="Print">Print</a>
+      </div>
+      <div class="table-responsive scores-scroll">
+        <table class="table table-sm align-middle mb-0 scores-table">
+          <thead class="sticky-top"><tr><th>Entry</th><th colspan="2" class="text-center">Score</th></tr></thead>
+          <tbody id="scoreRows"><tr><td colspan="3" class="text-muted">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>
+<%- include('partials/foot', { scripts: ['display-control.js'] }) %>

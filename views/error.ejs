@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Error <%= status %> · Ulutan</title><link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css"></head>
+<body class="bg-light d-flex align-items-center justify-content-center" style="min-height:100vh">
+<div class="card p-4 text-center" style="max-width:480px">
+  <h1 class="display-6 fw-bold"><%= status %></h1>
+  <p class="lead"><%= message %></p>
+  <a class="btn btn-dark" href="<%= user ? '/' : '/login' %>">Back</a>
+</div>
+</body></html>

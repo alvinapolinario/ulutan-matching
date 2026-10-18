@@ -1,0 +1,8 @@
+</main>
+<script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="/static/js/common.js?v=<%= locals.v || '' %>"></script>
+<% if (typeof scripts !== 'undefined') { scripts.forEach(s => { %><script src="/static/js/<%= s %>?v=<%= locals.v || '' %>"></script>
+<% }) } %>
+</body>
+</html>

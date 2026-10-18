@@ -1,0 +1,50 @@
+<%- include('partials/head') %>
+<div class="d-flex align-items-center mb-3 gap-2">
+  <h1 class="page-title">Event Settings</h1>
+  <button class="btn btn-dark btn-sm ms-auto" id="newEventBtn">+ New event</button>
+  <button class="btn btn-outline-secondary btn-sm" id="backupBtn" title="Save a copy of the database to data/backups">Back up now</button>
+</div>
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0">
+      <thead><tr><th>Event</th><th>Date</th><th>Venue</th><th>Status</th><th>Legbands</th><th>Fight no.</th><th>Max legbands</th><th>Issued</th><th class="text-end">Change status</th><th></th></tr></thead>
+      <tbody id="eventRows"><tr><td colspan="10" class="text-muted">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+<p class="text-muted small mt-3 mb-0">
+  Status flow: DRAFT → REGISTRATION OPEN → MATCHING OPEN → ACTIVE → COMPLETED → ARCHIVED (one step forward or back at a time).
+  Registration is allowed while REGISTRATION OPEN, MATCHING OPEN and ACTIVE. Matching is allowed while MATCHING OPEN and ACTIVE.
+</p>
+
+<div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalTitle" aria-modal="true" role="dialog">
+  <div class="modal-dialog"><form class="modal-content" id="eventForm" novalidate>
+    <div class="modal-header"><h5 class="modal-title" id="eventModalTitle">New event</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-body">
+      <div class="alert alert-danger d-none py-2" id="eventError" role="alert"></div>
+      <input type="hidden" name="id">
+      <div class="mb-2"><label class="form-label">Event name</label><input class="form-control" name="name" required maxlength="120"></div>
+      <div class="row g-2 mb-2">
+        <div class="col-6"><label class="form-label">Date</label><input class="form-control" type="date" name="date" required></div>
+        <div class="col-6"><label class="form-label">Venue</label><input class="form-control" name="venue" maxlength="160"></div>
+      </div>
+      <div class="mb-2"><label class="form-label">Legband numbers</label>
+        <select class="form-select" name="legbandMode">
+          <option value="MANUAL">Typed in — pre-numbered bands from management</option>
+          <option value="AUTO">Automatic — 001, 002, 003… issued by the system</option>
+        </select></div>
+      <div class="mb-2"><label class="form-label">Fight number</label>
+        <select class="form-select" name="fightNumberMode">
+          <option value="DRAW">Bunot (raffle) — operator types the drawn number</option>
+          <option value="AUTO">Automatic — 1, 2, 3… in matching order</option>
+        </select></div>
+      <div class="row g-2">
+        <div class="col-4"><label class="form-label">First fight no. (auto)</label><input class="form-control" type="number" min="1" max="9999" name="startingFightNumber" value="1"></div>
+        <div class="col-4"><label class="form-label">Max legbands</label><input class="form-control" type="number" min="2" max="999" name="maxLegbands" value="500"></div>
+        <div class="col-4"><label class="form-label">Upcoming on TV</label><input class="form-control" type="number" min="0" max="20" name="upcomingCount" value="8"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-dark" type="submit">Save</button></div>
+  </form></div>
+</div>
+<%- include('partials/foot', { scripts: ['events.js'] }) %>
