@@ -10,7 +10,11 @@ const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(__dirname, 'data
 
 let ctx;
 try {
-  ctx = createApp({ dataDir: DATA_DIR, secureCookies: process.env.SECURE_COOKIES === 'true' });
+  ctx = createApp({
+    dataDir: DATA_DIR,
+    secureCookies: process.env.SECURE_COOKIES === 'true',
+    trustProxy: process.env.TRUST_PROXY === 'true',
+  });
 } catch (e) {
   console.error('\nCould not start:', e.message, '\n');
   process.exit(1);

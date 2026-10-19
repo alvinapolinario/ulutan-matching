@@ -17,7 +17,7 @@ const { AppError } = require('./lib/common');
  * Build the whole application. Returns { app, server, io, store, services }.
  * Used by server.js and by the automated tests.
  */
-function createApp({ dataDir = path.join(__dirname, '..', 'data'), dbFile, backupIntervalMs, secureCookies = false, lock = true } = {}) {
+function createApp({ dataDir = path.join(__dirname, '..', 'data'), dbFile, backupIntervalMs, secureCookies = false, trustProxy = false, lock = true } = {}) {
   const store = new Store(dbFile || path.join(dataDir, 'db.json'), { backupDir: path.join(dataDir, 'backups'), backupIntervalMs, lock });
   const bus = createBus();
   const services = { store };
@@ -30,7 +30,8 @@ function createApp({ dataDir = path.join(__dirname, '..', 'data'), dbFile, backu
   const app = express();
   app.set('view engine', 'ejs');
   app.set('views', path.join(__dirname, '..', 'views'));
-  app.set('trust proxy', false);
+  // One hop only (the local nginx). A boolean `true` would trust every forwarded address.
+  app.set('trust proxy', trustProxy ? 1 : false);
   app.set('view cache', true); // templates are compiled once (restart the server after updating views)
   app.disable('x-powered-by');
 

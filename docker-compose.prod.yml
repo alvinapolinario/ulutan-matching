@@ -1,0 +1,16 @@
+services:
+  ulutan:
+    build: .
+    container_name: ulutan
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3010:3080"
+    volumes:
+      - ./data:/app/data
+    environment:
+      PORT: "3080"
+      TZ: Asia/Manila
+      SECURE_COOKIES: "true"
+      TRUST_PROXY: "true"
+    env_file:
+      - .env
