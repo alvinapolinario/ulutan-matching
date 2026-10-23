@@ -106,6 +106,12 @@ after Windows reboots. Do every step below **in the same Windows user account** 
 the event computer, using **Windows PowerShell** (or Windows Terminal). Only the steps marked *(admin)* need
 *Run as administrator*.
 
+> **Quick way:** steps 2, 3, 4, 5 and 7 are automated by `deploy/pm2-start.sh`. Install Node.js (step 1) and
+> [Git for Windows](https://git-scm.com/download/win), copy the app to `C:\ulutan`, open **Git Bash** in that
+> folder and run `bash deploy/pm2-start.sh`. It installs dependencies and PM2, starts the server, checks
+> `/healthz`, saves the process list and registers the login autostart. Run it again after copying new
+> app files. The firewall (step 6), automatic login and power settings (step 7) still need to be done by hand.
+
 #### 1. Install Node.js
 Download the **Node.js 22 LTS** Windows installer (`.msi`, 64-bit) from https://nodejs.org and run it with
 the default options (it adds `node` and `npm` to the PATH). Close and reopen PowerShell, then check:
@@ -133,33 +139,21 @@ and try again (or type `pm2.cmd` instead of `pm2`):
 Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ```
 
-#### 4. Create the PM2 configuration file
-The app reads its settings from **environment variables only** (there is no `.env` loader), so they go in a
-PM2 *ecosystem* file. Create **`C:\ulutan\ecosystem.config.js`** with this content:
-```js
-module.exports = {
-  apps: [
-    {
-      name: 'ulutan',
-      script: 'server.js',
-      cwd: 'C:\\ulutan',
-      instances: 1,          // must stay 1 - only one server may open data\db.json
-      exec_mode: 'fork',     // never 'cluster' (same reason)
-      autorestart: true,
-      watch: false,          // do not restart when files change
-      restart_delay: 2000,   // ms to wait before restarting after a crash
-      max_restarts: 10,      // give up after 10 crashes within a minute
-      env: {
-        NODE_ENV: 'production',
-        PORT: 3080,
-        DATA_DIR: 'C:\\ulutan\\data',   // db.json, sessions and backups live here
-        TZ: 'Asia/Manila',              // time zone used on printed reports
-      },
-    },
-  ],
-};
-```
-Change `PORT`, `DATA_DIR` or `TZ` if you need to. Use double backslashes (`\\`) in Windows paths.
+#### 4. Check the PM2 configuration file
+The app reads its settings from **environment variables only** (there is no `.env` loader), so they live in
+the PM2 *ecosystem* file **`ecosystem.config.js`** that ships in the app folder. It already contains the
+production settings and works unchanged from any folder:
+
+| Setting | Value | Why |
+|---|---|---|
+| `instances: 1`, `exec_mode: 'fork'` | fixed | only one server may open `data\db.json`; never use cluster mode |
+| `PORT` | `3080` | the address everyone opens |
+| `DATA_DIR` | `<app folder>\data` | `db.json`, sessions and backups |
+| `TZ` | `Asia/Manila` | time zone used on printed reports |
+| `autorestart`, `restart_delay: 2000`, `max_restarts: 10` | | restart after a crash, give up after 10 crashes in a minute |
+
+To change a value, either edit the file or set the variable when starting, e.g.
+`$env:PORT=3090; pm2 start ecosystem.config.js` (the value is remembered by `pm2 save`).
 
 #### 5. Start the server and check it
 ```powershell
@@ -237,8 +231,10 @@ npm install --omit=dev
 pm2 restart ulutan --update-env
 pm2 save
 ```
-Then press **Ctrl+Shift+R** on every operator screen and TV. If you changed `ecosystem.config.js` itself,
-use `pm2 delete ulutan` → `pm2 start ecosystem.config.js` → `pm2 save` so the new settings are read.
+Or simply run `bash deploy/pm2-start.sh` again from Git Bash after copying the files — it does all of the
+above and also re-reads `ecosystem.config.js`. Then press **Ctrl+Shift+R** on every operator screen and TV.
+If you changed `ecosystem.config.js` by hand, use `pm2 delete ulutan` → `pm2 start ecosystem.config.js` →
+`pm2 save` so the new settings are read (the script does this for you).
 
 #### Good to know on Windows
 - **Back up before stopping during an event.** On Windows PM2 ends the process by killing it instead of a
