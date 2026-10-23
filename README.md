@@ -99,12 +99,166 @@ as soon as it reconnects.
 
 Use a wired connection for the server if you can. Give the server a fixed IP (DHCP reservation in the router).
 
-### Windows
-1. Install Node.js 22 LTS. Copy the `ulutan` folder to e.g. `C:\ulutan`, then `npm install`.
-2. Run `npm start`. Allow **Node.js** through Windows Firewall on *Private* networks when asked
-   (or: `netsh advfirewall firewall add rule name="Ulutan" dir=in action=allow protocol=TCP localport=3080`).
-3. Auto-start (optional): `npm install -g pm2 pm2-windows-startup` → `pm2 start server.js --name ulutan` →
-   `pm2 save` → `pm2-startup install`.
+### Windows 11 — production deployment with PM2
+
+PM2 keeps the server running in the background, restarts it if it ever crashes, and starts it again
+after Windows reboots. Do every step below **in the same Windows user account** that will be logged in on
+the event computer, using **Windows PowerShell** (or Windows Terminal). Only the steps marked *(admin)* need
+*Run as administrator*.
+
+#### 1. Install Node.js
+Download the **Node.js 22 LTS** Windows installer (`.msi`, 64-bit) from https://nodejs.org and run it with
+the default options (it adds `node` and `npm` to the PATH). Close and reopen PowerShell, then check:
+```powershell
+node -v     # v22.x.x
+npm -v
+```
+
+#### 2. Copy the app and install its dependencies
+Copy the `ulutan` folder to **`C:\ulutan`**. Avoid *Desktop*, *Documents* or any OneDrive-synced folder:
+OneDrive can lock `data\db.json` while it syncs.
+```powershell
+cd C:\ulutan
+npm install --omit=dev
+```
+
+#### 3. Install PM2
+```powershell
+npm install -g pm2 pm2-windows-startup
+pm2 -v
+```
+If PowerShell answers *"running scripts is disabled on this system"*, allow locally installed scripts once
+and try again (or type `pm2.cmd` instead of `pm2`):
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
+#### 4. Create the PM2 configuration file
+The app reads its settings from **environment variables only** (there is no `.env` loader), so they go in a
+PM2 *ecosystem* file. Create **`C:\ulutan\ecosystem.config.js`** with this content:
+```js
+module.exports = {
+  apps: [
+    {
+      name: 'ulutan',
+      script: 'server.js',
+      cwd: 'C:\\ulutan',
+      instances: 1,          // must stay 1 - only one server may open data\db.json
+      exec_mode: 'fork',     // never 'cluster' (same reason)
+      autorestart: true,
+      watch: false,          // do not restart when files change
+      restart_delay: 2000,   // ms to wait before restarting after a crash
+      max_restarts: 10,      // give up after 10 crashes within a minute
+      env: {
+        NODE_ENV: 'production',
+        PORT: 3080,
+        DATA_DIR: 'C:\\ulutan\\data',   // db.json, sessions and backups live here
+        TZ: 'Asia/Manila',              // time zone used on printed reports
+      },
+    },
+  ],
+};
+```
+Change `PORT`, `DATA_DIR` or `TZ` if you need to. Use double backslashes (`\\`) in Windows paths.
+
+#### 5. Start the server and check it
+```powershell
+cd C:\ulutan
+pm2 start ecosystem.config.js
+pm2 status                 # ulutan should be "online"
+pm2 logs ulutan --lines 30 # shows the addresses, press Ctrl+C to leave the log view
+curl.exe http://localhost:3080/healthz    # should print {"ok":true}
+```
+Open `http://localhost:3080` in Chrome or Edge and **create the administrator account right away**
+(until an admin exists, anyone who reaches the address can create one).
+
+#### 6. Open the firewall *(admin)*
+Make sure the network is set to **Private** (Settings → Network & internet → Ethernet/Wi-Fi →
+*Network profile type* → **Private network**), then allow the port:
+```powershell
+netsh advfirewall firewall add rule name="Ulutan" dir=in action=allow protocol=TCP localport=3080 profile=private
+```
+From another device on the same network open `http://<server-ip>:3080` (the IP is in `pm2 logs ulutan`).
+
+#### 7. Start automatically when Windows starts
+```powershell
+pm2 save              # remembers the "ulutan" process list
+pm2-startup install   # makes PM2 restore that list when this user logs in
+```
+`pm2-windows-startup` runs when **this Windows user logs in**, not at the moment the PC boots. Choose one:
+
+- **Simple (recommended for an event PC):** let Windows log in automatically. Press `Win+R`, run `netplwiz`,
+  untick *Users must enter a user name and password to use this computer*, enter the password once.
+  (If that checkbox is missing, turn off *Settings → Accounts → Sign-in options → "For improved security,
+  only allow Windows Hello sign-in"*, or use Microsoft's **Autologon** tool from Sysinternals.)
+  Then lock the screen with `Win+L` if you want; the server keeps running.
+- **Run as a real Windows service (no login needed):** use **pm2-installer**
+  (https://github.com/jessety/pm2-installer), which installs PM2 as a Windows service under the
+  *Local Service* account. Follow its README (`npm run configure`, `npm run configure-policy`,
+  `npm run setup`, all *(admin)*), then run **all** `pm2` commands from an administrator PowerShell
+  (its `PM2_HOME` is `C:\ProgramData\pm2\home`). Give that account write access to the app folder:
+  `icacls "C:\ulutan" /grant "LOCAL SERVICE:(OI)(CI)M" /T` *(admin)*. Do **not** also install
+  `pm2-windows-startup` in that case.
+
+Stop the PC from sleeping while plugged in *(admin)*:
+```powershell
+powercfg /change standby-timeout-ac 0
+powercfg /change hibernate-timeout-ac 0
+powercfg /hibernate off
+```
+(Settings → System → Power → *When plugged in, put my device to sleep after* → **Never**.)
+Also set Windows Update *active hours* to cover event times, or **pause updates** for the event week, so the
+PC never restarts in the middle of a fight list.
+
+#### 8. Test the reboot
+Restart Windows. After login, run `pm2 status` → `ulutan` must be **online**, and the TV address must open
+from another device. If it is not online: `pm2 logs ulutan --err --lines 50` shows why.
+
+#### 9. Everyday PM2 commands
+| Command | What it does |
+|---|---|
+| `pm2 status` | Is the server running? uptime, restarts, memory |
+| `pm2 logs ulutan` | Live log (Ctrl+C to leave). `--err` for errors only, `--lines 100` for history |
+| `pm2 restart ulutan` | Restart (after updating app files) |
+| `pm2 stop ulutan` / `pm2 start ulutan` | Stop / start without removing it from PM2 |
+| `pm2 monit` | Live CPU/memory dashboard |
+| `pm2 flush` | Empty the log files |
+| `pm2 save` | Save the current process list (run after any `pm2 start` / `pm2 delete`) |
+
+Log files are in `%USERPROFILE%\.pm2\logs\ulutan-out.log` and `ulutan-error.log`. To stop them growing
+forever: `pm2 install pm2-logrotate` (keeps 10 MB × 30 files by default).
+
+#### 10. Updating the app
+```powershell
+pm2 stop ulutan
+# copy the new app files over C:\ulutan  (never replace or delete C:\ulutan\data)
+cd C:\ulutan
+npm install --omit=dev
+pm2 restart ulutan --update-env
+pm2 save
+```
+Then press **Ctrl+Shift+R** on every operator screen and TV. If you changed `ecosystem.config.js` itself,
+use `pm2 delete ulutan` → `pm2 start ecosystem.config.js` → `pm2 save` so the new settings are read.
+
+#### Good to know on Windows
+- **Back up before stopping during an event.** On Windows PM2 ends the process by killing it instead of a
+  polite `SIGINT`, so the "backup on shutdown" step may not run. The database itself can never be damaged by
+  this (every save is an atomic file swap), and automatic backups continue every 5 minutes while running;
+  just click **Back up now** (or `npm run backup`) before `pm2 stop` / `pm2 restart` on an event day.
+- **Do not also run `npm start`** while PM2 runs the app: the second copy refuses to start (the data folder
+  is locked and the port is taken). If the log says *"Database … is already in use by process …"*, check
+  `pm2 status` and Task Manager for a second `node.exe`; locks left by a crash or power cut are cleared automatically.
+- `pm2 startup` (the Linux command) does nothing on Windows — use `pm2-startup install` (or pm2-installer) as above.
+- Exclude `C:\ulutan\data` from OneDrive / backup tools that sync files while they are open.
+- Keep the PC on the private event network only; the app uses plain HTTP.
+
+#### Removing PM2 autostart
+```powershell
+pm2 delete ulutan
+pm2 save --force
+pm2-startup uninstall
+npm uninstall -g pm2 pm2-windows-startup
+```
 
 ### Ubuntu
 ```bash
@@ -147,7 +301,7 @@ Data is stored in `./data` on the host.
    red banner for admins and in the server console until changed. Never run `npm run demo` / `npm run seed` on
    the real data folder.
 3. Keep the server on the private event network only. Do not port-forward it to the internet; it uses plain HTTP.
-4. Run it under a supervisor so it restarts by itself (pm2 or systemd above; Docker uses `restart: unless-stopped`).
+4. Run it under a supervisor so it restarts by itself (PM2 on Windows 11 or systemd on Ubuntu, see above; Docker uses `restart: unless-stopped`).
 5. Set the computer's clock and time zone correctly (report times use it); on Docker set `TZ`.
 6. Click **Back up now** before and after the event and copy the backup to a USB drive (`npm run backup -- E:\`).
    Manual backups are never rotated away; automatic ones keep the last 50.
