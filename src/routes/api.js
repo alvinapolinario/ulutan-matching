@@ -27,7 +27,7 @@ module.exports = function apiRoutes(services) {
   r.post('/events', requireRole('ADMIN'), (req, res) => res.status(201).json(events.create(req.body, me(req).id)));
   r.get('/events/:eventId', (req, res) => res.json(req.event));
   r.patch('/events/:eventId', requireRole('ADMIN'), (req, res) => res.json(events.update(req.event.id, req.body, me(req).id)));
-  r.post('/events/:eventId/status', requireRole('ADMIN'), (req, res) => res.json(events.setStatus(req.event.id, req.body.status, me(req).id)));
+  r.post('/events/:eventId/status', requireRole('ADMIN'), (req, res) => res.json(events.setStatus(req.event.id, req.body.status, me(req).id, req.body.note)));
   r.get('/events/:eventId/summary', requireRole(...STAFF), (req, res) => {
     const ds = matches.displayState(req.event.id);
     res.json({ ...registration.summary(req.event.id), currentFight: ds.current ? ds.current.fightNumber : null, nextFight: ds.next ? ds.next.fightNumber : null, nextFightNumber: req.event.nextFightNumber, version: req.event.stateVersion });

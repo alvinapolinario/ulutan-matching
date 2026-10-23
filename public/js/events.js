@@ -15,16 +15,17 @@
 
   async function load() {
     events = await api('GET', '/api/events');
+    events.sort((a, b) => (a.status === 'ARCHIVED') - (b.status === 'ARCHIVED') || b.id - a.id);
     if (!events.length) { rows.innerHTML = '<tr><td colspan="10" class="text-muted">No events yet. Click “New event”.</td></tr>'; return; }
-    rows.innerHTML = events.map((e) => `<tr>
+    rows.innerHTML = events.map((e) => `<tr class="${e.status === 'ARCHIVED' ? 'text-muted' : ''}">
       <td class="fw-semibold">${esc(e.name)}</td><td>${esc(e.date)}</td><td>${esc(e.venue)}</td>
       <td><span class="badge text-bg-secondary">${esc(e.status.replace('_', ' '))}</span></td>
       <td>${(e.legbandMode || 'MANUAL') === 'MANUAL' ? 'Typed' : 'Auto'}</td>
       <td>${(e.fightNumberMode || 'DRAW') === 'DRAW' ? 'Bunot' : 'Auto from ' + e.startingFightNumber}</td><td>${e.maxLegbands}</td><td>${e.legbandsIssued}</td>
-      <td class="text-end">${TRANSITIONS[e.status].map((s) => {
+      <td class="text-end">${TRANSITIONS[e.status].filter((s) => s !== 'ARCHIVED').map((s) => {
         const fwd = ORDER.indexOf(s) > ORDER.indexOf(e.status);
         return `<button class="btn btn-sm ${fwd ? 'btn-success' : 'btn-outline-secondary'} ms-1" data-status="${s}" data-id="${e.id}">${fwd ? '→' : '←'} ${esc(s.replace('_', ' '))}</button>`;
-      }).join('')}</td>
+      }).join('')}${e.status === 'COMPLETED' ? `<button class="btn btn-sm btn-dark ms-1" data-archive="${e.id}">Archive</button>` : ''}${e.archiveFile ? `<div class="small text-muted mt-1">Saved copy: ${esc(e.archiveFile)}</div>` : ''}</td>
       <td class="text-end"><button class="btn btn-sm btn-outline-dark" data-edit="${e.id}">Edit</button></td></tr>`).join('');
   }
 
@@ -70,6 +71,25 @@
   rows.addEventListener('click', async (e) => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.edit) return openForm(events.find((x) => x.id === Number(b.dataset.edit)));
+    if (b.dataset.archive) {
+      const named = events.find((x) => x.id === Number(b.dataset.archive));
+      const r = await App.prompt({
+        title: `Archive ${named ? named.name : 'this event'}?`,
+        label: 'Optional note',
+        required: false,
+        confirmText: 'Archive',
+        extraHtml: '<p class="small mb-2">Entries, legbands and fights stay available in reports, and a copy is saved. Registration and matching close. Next you can create the new event. Restore to Completed if this was a mistake.</p>',
+      });
+      if (!r) return;
+      b.disabled = true;
+      try {
+        const ev = await api('POST', `/api/events/${b.dataset.archive}/status`, { status: 'ARCHIVED', note: r.value });
+        toast(`Archived. Copy saved: ${ev.archiveFile}`, 'success', 6000);
+        await load();
+        openForm(null);
+      } catch (err) { toast(err.message, 'danger'); b.disabled = false; }
+      return;
+    }
     if (b.dataset.status) {
       try { await api('POST', `/api/events/${b.dataset.id}/status`, { status: b.dataset.status }); toast(`Status changed to ${b.dataset.status.replace('_', ' ')}.`); location.reload(); } catch (err) { toast(err.message, 'danger'); }
     }

@@ -49,8 +49,7 @@ function createEventService(store, bus) {
     },
     find: (id) => store.data.events.find((e) => e.id === Number(id)) || null,
     defaultEvent() {
-      const open = svc.list().filter((e) => e.status !== 'ARCHIVED');
-      return open[0] || svc.list()[0] || null;
+      return svc.list().find((e) => e.status !== 'ARCHIVED') || null;
     },
 
     create(input, userId) {
@@ -83,6 +82,7 @@ function createEventService(store, bus) {
       const ev = store.transaction((d) => {
         const e = d.events.find((x) => x.id === Number(id));
         if (!e) throw notFound('Event not found.');
+        if (e.status === 'ARCHIVED') throw badRequest('This event is archived. Restore it to COMPLETED before editing it.');
         const usedFights = d.matches.some((m) => m.eventId === e.id);
         const old = {};
         for (const k of Object.keys(s)) {
@@ -107,8 +107,10 @@ function createEventService(store, bus) {
       return ev;
     },
 
-    setStatus(id, status, userId) {
+    setStatus(id, status, userId, reason) {
       if (!EVENT_STATUSES.includes(status)) throw badRequest('Invalid event status.');
+      const note = cleanText(reason, 300);
+      const before = store.data.events.find((x) => x.id === Number(id));
       const ev = store.transaction((d) => {
         const e = d.events.find((x) => x.id === Number(id));
         if (!e) throw notFound('Event not found.');
@@ -119,12 +121,38 @@ function createEventService(store, bus) {
         const old = e.status;
         e.status = status;
         e.updatedAt = now();
+        if (status === 'ARCHIVED') e.archivedAt = e.updatedAt;
         bumpVersion(d, e.id);
-        addAudit(store, d, { eventId: e.id, entity: 'event', entityId: e.id, action: 'EVENT_STATUS_CHANGED', oldValues: { status: old }, newValues: { status }, userId });
+        addAudit(store, d, { eventId: e.id, entity: 'event', entityId: e.id, action: 'EVENT_STATUS_CHANGED', oldValues: { status: old }, newValues: { status }, reason: note || null, userId });
         return e;
       });
+      if (before && before.status !== 'ARCHIVED' && ev.status === 'ARCHIVED') {
+        const file = svc._writeArchive(ev);
+        store.transaction((d) => {
+          const e = d.events.find((x) => x.id === ev.id);
+          e.archiveFile = file;
+          return e;
+        });
+        ev.archiveFile = file;
+      }
       bus.publish(ev.id, 'event:updated', { eventId: ev.id });
       return ev;
+    },
+
+    /** Copy one event's records into data/archives. The live database keeps them so reports still open. */
+    _writeArchive(ev) {
+      const d = store.data;
+      const entries = d.entries.filter((e) => e.eventId === ev.id);
+      const owners = new Set(entries.map((e) => e.participantId));
+      return store.saveArchive(`event-${ev.id}-${ev.name}`, {
+        archivedAt: ev.archivedAt,
+        event: ev,
+        participants: d.participants.filter((p) => owners.has(p.id)).map((p) => ({ id: p.id, name: p.name })),
+        entries,
+        legbands: d.legbands.filter((l) => l.eventId === ev.id),
+        matches: d.matches.filter((m) => m.eventId === ev.id),
+        auditLogs: d.auditLogs.filter((a) => a.eventId === ev.id),
+      });
     },
   };
   return svc;

@@ -25,12 +25,12 @@
         <% }) %>
         <li class="nav-item"><a class="nav-link" href="/display<%= event ? '?event=' + event.id : '' %>" target="_blank" rel="noopener">TV Display ↗</a></li>
       </ul>
-      <% if (events.length) { %>
+      <% if (events.length) { const orderedEvents = [...events].sort((a, b) => (a.status === 'ARCHIVED') - (b.status === 'ARCHIVED') || b.id - a.id); %>
       <form method="post" action="/select-event" class="d-flex align-items-center me-3 my-2 my-xl-0">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <input type="hidden" name="back" value="<%= path %>">
         <select name="eventId" class="form-select form-select-sm event-select" aria-label="Working event" data-autosubmit>
-          <% events.forEach(e => { %><option value="<%= e.id %>" <%= event && e.id === event.id ? 'selected' : '' %>><%= e.name %> (<%= e.date %>)</option><% }) %>
+          <% orderedEvents.forEach(e => { %><option value="<%= e.id %>" <%= event && e.id === event.id ? 'selected' : '' %>><%= e.name %> (<%= e.date %>)<%= e.status === 'ARCHIVED' ? ' — archived' : '' %></option><% }) %>
         </select>
         <% if (event) { %><span class="badge text-bg-<%= statusClass[event.status] %> ms-2"><%= event.status.replace('_', ' ') %></span><% } %>
       </form>
@@ -45,6 +45,12 @@
 </nav>
 <div class="toast-container position-fixed top-0 end-0 p-3 d-print-none" id="toasts"></div>
 <main class="container-fluid py-3">
+<% if (event && event.status === 'ARCHIVED') { %>
+<div class="alert alert-secondary d-print-none py-2" role="status">
+  <b><%= event.name %></b> is archived. Its entries, legbands and fights are kept for reports.
+  <% if (user && user.role === 'ADMIN') { %>Use <a href="/events" class="alert-link">Events</a> to create the next event.<% } else { %>An administrator can create the next event.<% } %>
+</div>
+<% } %>
 <% if (locals.weakAccounts && weakAccounts.length) { %>
 <div class="alert alert-danger d-print-none py-2" role="alert">
   <b>Security:</b> these accounts still use a demo or easy password: <b><%= weakAccounts.join(', ') %></b>.

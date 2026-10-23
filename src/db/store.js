@@ -157,6 +157,20 @@ class Store {
     while (auto.length > this.keepBackups) fs.unlinkSync(path.join(this.backupDir, auto.shift()));
   }
 
+  /** Write an event archive that is never rotated away. Returns the file name, not the full path. */
+  saveArchive(label, data) {
+    const dir = path.join(path.dirname(this.file), 'archives');
+    fs.mkdirSync(dir, { recursive: true });
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const safe = String(label || 'event').replace(/[^A-Za-z0-9._-]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 80) || 'event';
+    const name = `${stamp}-${safe}.json`;
+    const target = path.join(dir, name);
+    const tmp = `${target}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
+    fs.renameSync(tmp, target);
+    return name;
+  }
+
   close() {
     if (this._timer) clearInterval(this._timer);
     if (this._ownsLock) {
