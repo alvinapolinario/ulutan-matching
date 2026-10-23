@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><%= report.title %> · <%= event.name %></title>
   <link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/vendor/bootstrap-icons/bootstrap-icons.css">
   <link rel="stylesheet" href="/static/css/app.css?v=<%= locals.v || '' %>">
 </head>
 <body class="bg-white">
@@ -19,8 +20,8 @@
       <div class="h5 fw-bold mb-0"><%= report.title %></div>
       <div class="small text-muted">Printed <%= printedAt.toLocaleString('en-PH') %> by <%= user.username %></div>
       <div class="d-print-none mt-2 d-flex gap-2 justify-content-end">
-        <button class="btn btn-sm btn-dark" data-print>Print</button>
-        <a class="btn btn-sm btn-outline-dark" href="?format=csv">CSV</a>
+        <button class="btn btn-sm btn-dark" data-print><i class="bi bi-printer" aria-hidden="true"></i> Print</button>
+        <a class="btn btn-sm btn-outline-dark" href="?format=csv"><i class="bi bi-filetype-csv" aria-hidden="true"></i> CSV</a>
       </div>
     </div>
   </div>

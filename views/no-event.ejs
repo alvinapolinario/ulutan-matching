@@ -1,9 +1,10 @@
 <%- include('partials/head') %>
 <div class="card p-4 mx-auto mt-4 text-center" style="max-width:560px">
+  <div class="display-6 text-warning mb-2"><i class="bi bi-calendar-event" aria-hidden="true"></i></div>
   <h1 class="h4 fw-bold">No event yet</h1>
   <% if (user.role === 'ADMIN') { %>
     <p>Create an event first. Registrations, legbands and fights all belong to an event.</p>
-    <a class="btn btn-dark" href="/events">Create an event</a>
+    <a class="btn btn-dark" href="/events"><i class="bi bi-plus-lg" aria-hidden="true"></i> Create an event</a>
   <% } else { %>
     <p>An administrator needs to create an event before you can work on <%= title.toLowerCase() %>.</p>
   <% } %>

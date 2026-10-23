@@ -25,8 +25,8 @@
       <td class="text-end">${TRANSITIONS[e.status].filter((s) => s !== 'ARCHIVED').map((s) => {
         const fwd = ORDER.indexOf(s) > ORDER.indexOf(e.status);
         return `<button class="btn btn-sm ${fwd ? 'btn-success' : 'btn-outline-secondary'} ms-1" data-status="${s}" data-id="${e.id}">${fwd ? '→' : '←'} ${esc(s.replace('_', ' '))}</button>`;
-      }).join('')}${e.status === 'COMPLETED' ? `<button class="btn btn-sm btn-dark ms-1" data-archive="${e.id}">Archive</button>` : ''}${e.archiveFile ? `<div class="small text-muted mt-1">Saved copy: ${esc(e.archiveFile)}</div>` : ''}</td>
-      <td class="text-end"><button class="btn btn-sm btn-outline-dark" data-edit="${e.id}">Edit</button></td></tr>`).join('');
+      }).join('')}${e.status === 'COMPLETED' ? `<button class="btn btn-sm btn-dark ms-1" data-archive="${e.id}"><i class="bi bi-archive" aria-hidden="true"></i> Archive</button>` : ''}${e.archiveFile ? `<div class="small text-muted mt-1"><i class="bi bi-file-earmark-zip" aria-hidden="true"></i> Saved copy: ${esc(e.archiveFile)}</div>` : ''}</td>
+      <td class="text-end"><button class="btn btn-sm btn-outline-dark" data-edit="${e.id}"><i class="bi bi-pencil" aria-hidden="true"></i> Edit</button></td></tr>`).join('');
   }
 
   function openForm(ev) {

@@ -1,8 +1,11 @@
 <%- include('partials/head') %>
+<div class="d-flex align-items-center mb-3">
+  <h1 class="page-title"><i class="bi bi-people" aria-hidden="true"></i>Users</h1>
+</div>
 <div class="row g-3">
   <div class="col-lg-8">
     <div class="card">
-      <div class="card-header bg-white fw-bold">Users</div>
+      <div class="card-header bg-white fw-bold"><i class="bi bi-people" aria-hidden="true"></i> Users</div>
       <div class="table-responsive"><table class="table table-sm mb-0">
         <thead><tr><th>Username</th><th>Role</th><th>Status</th><th>Created</th><th class="text-end">Actions</th></tr></thead>
         <tbody id="userRows"></tbody>
@@ -11,7 +14,7 @@
   </div>
   <div class="col-lg-4">
     <form class="card p-3" id="userForm">
-      <h2 class="h6 fw-bold">Add user</h2>
+      <h2 class="h6 fw-bold"><i class="bi bi-person-plus" aria-hidden="true"></i> Add user</h2>
       <label class="form-label">Username</label><input class="form-control mb-2" name="username" required autocomplete="off">
       <label class="form-label">Password</label><input class="form-control mb-2" name="password" type="password" minlength="6" required autocomplete="new-password">
       <label class="form-label">Role</label>
@@ -20,7 +23,7 @@
         <option value="ADMIN">Administrator — everything incl. corrections</option>
         <option value="DISPLAY">Display — TV screen only</option>
       </select>
-      <button class="btn btn-dark">Add user</button>
+      <button class="btn btn-dark"><i class="bi bi-plus-lg" aria-hidden="true"></i> Add user</button>
     </form>
   </div>
 </div>

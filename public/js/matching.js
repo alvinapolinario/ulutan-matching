@@ -240,7 +240,7 @@
         <td class="row-red">${esc(m.red.entryName)}</td><td class="lb row-red">${esc(m.red.legband)}</td>
         <td class="row-blue">${esc(m.blue.entryName)}</td><td class="lb row-blue">${esc(m.blue.legband)}</td>
         <td>${statusBadge(m.status)}</td><td class="small text-muted">${esc(m.confirmedBy || '')}</td>
-        <td class="text-end">${m.status === 'CONFIRMED' ? `<button type="button" class="btn btn-sm btn-outline-danger" data-unmatch="${m.id}" data-label="Fight #${pad(m.fightNumber)} (${esc(m.red.legband)} vs ${esc(m.blue.legband)})">Unmatch</button>` : ''}</td></tr>`).join('')
+        <td class="text-end">${m.status === 'CONFIRMED' ? `<button type="button" class="btn btn-sm btn-outline-danger" data-unmatch="${m.id}" data-label="Fight #${pad(m.fightNumber)} (${esc(m.red.legband)} vs ${esc(m.blue.legband)})"><i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> Unmatch</button>` : ''}</td></tr>`).join('')
         : '<tr><td colspan="8" class="text-muted">No matches yet.</td></tr>';
     } catch (e) { toast(e.message, 'danger'); }
   }

@@ -1,17 +1,20 @@
 <%- include('partials/head') %>
 <div class="d-flex align-items-center mb-3 gap-2 flex-wrap">
-  <h1 class="page-title">Official Fight List</h1>
+  <h1 class="page-title"><i class="bi bi-list-ol" aria-hidden="true"></i>Official Fight List</h1>
   <span id="liveDot" class="live-dot" title="Connecting…"></span>
   <div class="ms-auto d-flex gap-2 flex-wrap">
-    <a class="btn btn-sm btn-outline-dark" href="/reports/fights" target="_blank">Print fight list</a>
-    <a class="btn btn-sm btn-outline-dark" href="/reports/fights?format=csv">Export CSV</a>
-    <a class="btn btn-sm btn-outline-dark" href="/reports/sequence" target="_blank">Print sequence</a>
-    <% if (user.role === 'ADMIN') { %><a class="btn btn-sm btn-outline-dark" href="/reports/audit" target="_blank">Audit trail</a><% } %>
+    <a class="btn btn-sm btn-outline-dark" href="/reports/fights" target="_blank"><i class="bi bi-printer" aria-hidden="true"></i> Print fight list</a>
+    <a class="btn btn-sm btn-outline-dark" href="/reports/fights?format=csv"><i class="bi bi-filetype-csv" aria-hidden="true"></i> Export CSV</a>
+    <a class="btn btn-sm btn-outline-dark" href="/reports/sequence" target="_blank"><i class="bi bi-printer" aria-hidden="true"></i> Print sequence</a>
+    <% if (user.role === 'ADMIN') { %><a class="btn btn-sm btn-outline-dark" href="/reports/audit" target="_blank"><i class="bi bi-journal-text" aria-hidden="true"></i> Audit trail</a><% } %>
   </div>
 </div>
 <div class="card">
   <div class="card-header bg-white d-flex flex-wrap gap-2 align-items-center">
-    <input class="form-control form-control-sm" style="max-width:260px" id="search" placeholder="Search legband, entry or fight no." aria-label="Search fights">
+    <div class="input-group input-group-sm" style="max-width:280px">
+      <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
+      <input class="form-control" id="search" placeholder="Search legband, entry or fight no." aria-label="Search fights">
+    </div>
     <select class="form-select form-select-sm" style="max-width:170px" id="statusFilter" aria-label="Filter by status">
       <option value="">All statuses</option><option>CONFIRMED</option><option>COMPLETED</option><option>CANCELLED</option>
     </select>

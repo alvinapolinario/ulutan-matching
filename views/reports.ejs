@@ -1,27 +1,32 @@
 <%- include('partials/head') %>
-<h1 class="page-title mb-3">Reports</h1>
+<h1 class="page-title mb-3"><i class="bi bi-file-earmark-text" aria-hidden="true"></i>Reports</h1>
 <% const list = [
-  ['registration', 'Registration Master List', 'All entries with both legband numbers'],
-  ['legbands', 'Legband Master List', 'Every legband with owner, status and fight'],
-  ['available', 'Available Legbands', 'Legbands not yet matched'],
-  ['gamecocks', 'Gamecock List', 'Every gamecock: owner, entry, legband, status and opponent'],
-  ['fights', 'Official Matching List', 'All official fights in fight-number order'],
-  ['cancelled', 'Cancelled Matches', 'With who cancelled and why'],
-  ['sequence', 'Fight Sequence', 'Running order with results'],
-  ['scores', 'Entry Scores', 'Every entry with its two score boxes (1, 0, ½)'],
-  ['standings', 'Standings', 'Points per entry: win 1, draw ½, loss 0'],
-  ['summary', 'Event Summary', 'Totals for the event'],
-  ['audit', 'Match Audit Report', 'Every change, who made it and why (admin)'],
+  ['registration', 'bi-person-vcard', 'Registration Master List', 'All entries with both legband numbers'],
+  ['legbands', 'bi-tag', 'Legband Master List', 'Every legband with owner, status and fight'],
+  ['available', 'bi-check2-circle', 'Available Legbands', 'Legbands not yet matched'],
+  ['gamecocks', 'bi-feather', 'Gamecock List', 'Every gamecock: owner, entry, legband, status and opponent'],
+  ['fights', 'bi-list-ol', 'Official Matching List', 'All official fights in fight-number order'],
+  ['cancelled', 'bi-x-circle', 'Cancelled Matches', 'With who cancelled and why'],
+  ['sequence', 'bi-sort-numeric-down', 'Fight Sequence', 'Running order with results'],
+  ['scores', 'bi-clipboard-data', 'Entry Scores', 'Every entry with its two score boxes (1, 0, ½)'],
+  ['standings', 'bi-trophy', 'Standings', 'Points per entry: win 1, draw ½, loss 0'],
+  ['summary', 'bi-clipboard-check', 'Event Summary', 'Totals for the event'],
+  ['audit', 'bi-journal-text', 'Match Audit Report', 'Every change, who made it and why (admin)'],
 ]; %>
 <div class="row g-3">
-  <% list.forEach(([key, title, desc]) => { if (key === 'audit' && user.role !== 'ADMIN') return; %>
+  <% list.forEach(([key, icon, title, desc]) => { if (key === 'audit' && user.role !== 'ADMIN') return; %>
   <div class="col-md-6 col-xl-4">
-    <div class="card p-3 h-100">
-      <div class="fw-bold"><%= title %></div>
-      <div class="small text-muted mb-2"><%= desc %></div>
+    <div class="card report-card p-3 h-100">
+      <div class="d-flex gap-2 align-items-start">
+        <span class="shortcut-icon report"><i class="bi <%= icon %>" aria-hidden="true"></i></span>
+        <div>
+          <div class="fw-bold"><%= title %></div>
+          <div class="small text-muted mb-2"><%= desc %></div>
+        </div>
+      </div>
       <div class="mt-auto d-flex gap-2">
-        <a class="btn btn-sm btn-dark" href="/reports/<%= key %>" target="_blank">View / Print</a>
-        <a class="btn btn-sm btn-outline-dark" href="/reports/<%= key %>?format=csv">CSV</a>
+        <a class="btn btn-sm btn-dark" href="/reports/<%= key %>" target="_blank"><i class="bi bi-printer" aria-hidden="true"></i> View / Print</a>
+        <a class="btn btn-sm btn-outline-dark" href="/reports/<%= key %>?format=csv"><i class="bi bi-filetype-csv" aria-hidden="true"></i> CSV</a>
       </div>
     </div>
   </div>

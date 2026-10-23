@@ -1,16 +1,19 @@
 <%- include('partials/head') %>
 <div class="d-flex align-items-center mb-3 gap-2 flex-wrap">
-  <h1 class="page-title">Gamecocks</h1>
+  <h1 class="page-title"><i class="bi bi-feather" aria-hidden="true"></i>Gamecocks</h1>
   <span id="liveDot" class="live-dot" title="Connecting…"></span>
   <div class="ms-auto d-flex gap-2 flex-wrap">
-    <a class="btn btn-sm btn-outline-dark" href="/reports/gamecocks" target="_blank">Print</a>
-    <a class="btn btn-sm btn-outline-dark" href="/reports/gamecocks?format=csv">Export CSV</a>
+    <a class="btn btn-sm btn-outline-dark" href="/reports/gamecocks" target="_blank"><i class="bi bi-printer" aria-hidden="true"></i> Print</a>
+    <a class="btn btn-sm btn-outline-dark" href="/reports/gamecocks?format=csv"><i class="bi bi-filetype-csv" aria-hidden="true"></i> Export CSV</a>
   </div>
 </div>
 <div class="d-flex flex-wrap gap-2 mb-3" id="chips" role="group" aria-label="Filter by status"></div>
 <div class="card">
   <div class="card-header bg-white d-flex flex-wrap gap-2 align-items-center">
-    <input class="form-control form-control-sm" style="max-width:280px" id="search" placeholder="Search legband, entry name, owner or fight no." aria-label="Search gamecocks">
+    <div class="input-group input-group-sm" style="max-width:300px">
+      <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
+      <input class="form-control" id="search" placeholder="Search legband, entry name, owner or fight no." aria-label="Search gamecocks">
+    </div>
     <select class="form-select form-select-sm" style="max-width:190px" id="sortBy" aria-label="Sort">
       <option value="legband">Sort by legband</option>
       <option value="entry">Sort by entry name</option>

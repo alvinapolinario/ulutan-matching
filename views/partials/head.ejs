@@ -6,24 +6,30 @@
   <meta name="csrf-token" content="<%= csrfToken %>">
   <title><%= typeof title !== 'undefined' ? title + ' · ' : '' %>Ulutan</title>
   <link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/vendor/bootstrap-icons/bootstrap-icons.css">
   <link rel="stylesheet" href="/static/css/app.css?v=<%= locals.v || '' %>">
 </head>
 <body data-event-id="<%= event ? event.id : '' %>" data-role="<%= user ? user.role : '' %>" data-legband-width="<%= event ? event.legbandWidth : 3 %>" data-legband-mode="<%= event ? (event.legbandMode || 'MANUAL') : 'MANUAL' %>" data-fight-mode="<%= event ? (event.fightNumberMode || 'DRAW') : 'DRAW' %>">
 <% const nav = [
-  ['/', 'Dashboard'], ['/registration', 'Registration'], ['/matching', 'Matching'], ['/fights', 'Fight List'], ['/gamecocks', 'Gamecocks'],
-  ['/display-control', 'TV Control'], ['/reports', 'Reports'] ];
-   if (user && user.role === 'ADMIN') { nav.push(['/events', 'Events'], ['/users', 'Users']); }
+  ['/', 'Dashboard', 'bi-speedometer2'],
+  ['/registration', 'Registration', 'bi-person-plus'],
+  ['/matching', 'Matching', 'bi-arrow-left-right'],
+  ['/fights', 'Fight List', 'bi-list-ol'],
+  ['/gamecocks', 'Gamecocks', 'bi-feather'],
+  ['/display-control', 'TV Control', 'bi-tv'],
+  ['/reports', 'Reports', 'bi-file-earmark-text'] ];
+   if (user && user.role === 'ADMIN') { nav.push(['/events', 'Events', 'bi-calendar-event'], ['/users', 'Users', 'bi-people']); }
    const statusClass = { DRAFT: 'secondary', REGISTRATION_OPEN: 'info', MATCHING_OPEN: 'warning', ACTIVE: 'success', COMPLETED: 'dark', ARCHIVED: 'light' }; %>
 <nav class="navbar navbar-expand-xl navbar-dark bg-dark d-print-none app-nav">
   <div class="container-fluid">
-    <a class="navbar-brand fw-bold" href="/">ULUTAN</a>
+    <a class="navbar-brand fw-bold" href="/"><i class="bi bi-trophy-fill" aria-hidden="true"></i> ULUTAN</a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-label="Menu"><span class="navbar-toggler-icon"></span></button>
     <div class="collapse navbar-collapse" id="mainNav">
       <ul class="navbar-nav me-auto">
-        <% nav.forEach(([href, label]) => { %>
-          <li class="nav-item"><a class="nav-link <%= path === href ? 'active' : '' %>" href="<%= href %>"><%= label %></a></li>
+        <% nav.forEach(([href, label, icon]) => { %>
+          <li class="nav-item"><a class="nav-link <%= path === href ? 'active' : '' %>" href="<%= href %>"><i class="bi <%= icon %>" aria-hidden="true"></i><%= label %></a></li>
         <% }) %>
-        <li class="nav-item"><a class="nav-link" href="/display<%= event ? '?event=' + event.id : '' %>" target="_blank" rel="noopener">TV Display ↗</a></li>
+        <li class="nav-item"><a class="nav-link" href="/display<%= event ? '?event=' + event.id : '' %>" target="_blank" rel="noopener"><i class="bi bi-display" aria-hidden="true"></i>TV Display</a></li>
       </ul>
       <% if (events.length) { const orderedEvents = [...events].sort((a, b) => (a.status === 'ARCHIVED') - (b.status === 'ARCHIVED') || b.id - a.id); %>
       <form method="post" action="/select-event" class="d-flex align-items-center me-3 my-2 my-xl-0">
@@ -38,7 +44,7 @@
       <form method="post" action="/logout" class="d-flex align-items-center">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <span class="navbar-text small me-2"><%= user.username %> · <%= user.role.toLowerCase() %></span>
-        <button class="btn btn-sm btn-outline-light">Log out</button>
+        <button class="btn btn-sm btn-outline-light"><i class="bi bi-box-arrow-right" aria-hidden="true"></i> Log out</button>
       </form>
     </div>
   </div>

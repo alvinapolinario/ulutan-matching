@@ -36,9 +36,9 @@
       <td class="fw-bold">${e.entryNumber}</td><td>${esc(e.entryName)}${e.address ? `<div class="small text-muted">${esc(e.address)}</div>` : ''}</td><td>${esc(e.participantName)}</td>
       <td>${lbCell(e.legband1)}</td><td>${lbCell(e.legband2)}</td><td>${statusBadge(e.displayStatus)}</td>
       <td class="text-end text-nowrap">
-        ${e.displayStatus === 'INCOMPLETE' ? `<button class="btn btn-sm btn-warning" data-add="${e.id}">+ Legband</button>` : ''}
-        ${e.status === 'ACTIVE' && (!e.locked || App.isAdmin) ? `<button class="btn btn-sm btn-outline-dark" data-edit="${e.id}">Edit</button>` : ''}
-        ${App.isAdmin && e.status === 'ACTIVE' && !e.locked ? `<button class="btn btn-sm btn-outline-danger" data-withdraw="${e.id}">Withdraw</button>` : ''}
+        ${e.displayStatus === 'INCOMPLETE' ? `<button class="btn btn-sm btn-warning" data-add="${e.id}"><i class="bi bi-plus-lg" aria-hidden="true"></i> Legband</button>` : ''}
+        ${e.status === 'ACTIVE' && (!e.locked || App.isAdmin) ? `<button class="btn btn-sm btn-outline-dark" data-edit="${e.id}"><i class="bi bi-pencil" aria-hidden="true"></i> Edit</button>` : ''}
+        ${App.isAdmin && e.status === 'ACTIVE' && !e.locked ? `<button class="btn btn-sm btn-outline-danger" data-withdraw="${e.id}"><i class="bi bi-box-arrow-left" aria-hidden="true"></i> Withdraw</button>` : ''}
       </td></tr>`).join('');
   }
 

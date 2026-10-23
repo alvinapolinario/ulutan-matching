@@ -12,13 +12,13 @@
   function actions(m) {
     if (m.status === 'CANCELLED') return `<span class="small text-muted" title="${esc(m.cancelReason)}">by ${esc(m.cancelledBy)}: ${esc(m.cancelReason)}</span>`;
     const b = [];
-    if (!m.isCurrent) b.push(`<button class="btn btn-sm btn-outline-warning" data-act="current">Set active</button>`);
+    if (!m.isCurrent) b.push(`<button class="btn btn-sm btn-outline-warning" data-act="current"><i class="bi bi-broadcast" aria-hidden="true"></i> Set active</button>`);
     if (m.status === 'CONFIRMED') {
       b.push(`<div class="btn-group btn-group-sm" role="group" aria-label="Result"><button class="btn btn-outline-danger" data-act="result" data-r="RED" title="Red wins 1-0">R 1-0</button><button class="btn btn-outline-secondary" data-act="result" data-r="DRAW" title="Draw ½-½">½</button><button class="btn btn-outline-primary" data-act="result" data-r="BLUE" title="Blue wins 0-1">B 0-1</button></div>`);
     }
     if (App.isAdmin) {
       if (m.status === 'CONFIRMED') {
-        b.push(`<button class="btn btn-sm btn-light" data-act="up" title="Move up">↑</button><button class="btn btn-sm btn-light" data-act="down" title="Move down">↓</button>`);
+        b.push(`<button class="btn btn-sm btn-light" data-act="up" title="Move up" aria-label="Move up"><i class="bi bi-arrow-up" aria-hidden="true"></i></button><button class="btn btn-sm btn-light" data-act="down" title="Move down" aria-label="Move down"><i class="bi bi-arrow-down" aria-hidden="true"></i></button>`);
         b.push(`<div class="btn-group btn-group-sm"><button class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">More</button><ul class="dropdown-menu dropdown-menu-end">
           <li><button class="dropdown-item" data-act="correct">Correct legband…</button></li>
           <li><button class="dropdown-item" data-act="number">Change fight number…</button></li>

@@ -10,8 +10,8 @@
       <td><select class="form-select form-select-sm" data-role="${u.id}" style="width:auto">${['ADMIN', 'OPERATOR', 'DISPLAY'].map((r) => `<option ${r === u.role ? 'selected' : ''}>${r}</option>`).join('')}</select></td>
       <td><span class="badge text-bg-${u.status === 'ACTIVE' ? 'success' : 'secondary'}">${u.status}</span></td>
       <td class="small">${new Date(u.createdAt).toLocaleString()}</td>
-      <td class="text-end"><button class="btn btn-sm btn-outline-dark" data-pw="${u.id}">Reset password</button>
-        <button class="btn btn-sm btn-outline-${u.status === 'ACTIVE' ? 'danger' : 'success'}" data-toggle="${u.id}" data-status="${u.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE'}">${u.status === 'ACTIVE' ? 'Disable' : 'Enable'}</button></td></tr>`).join('');
+      <td class="text-end"><button class="btn btn-sm btn-outline-dark" data-pw="${u.id}"><i class="bi bi-key" aria-hidden="true"></i> Reset password</button>
+        <button class="btn btn-sm btn-outline-${u.status === 'ACTIVE' ? 'danger' : 'success'}" data-toggle="${u.id}" data-status="${u.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE'}">${u.status === 'ACTIVE' ? '<i class="bi bi-person-slash" aria-hidden="true"></i> Disable' : '<i class="bi bi-person-check" aria-hidden="true"></i> Enable'}</button></td></tr>`).join('');
   }
   form.addEventListener('submit', async (e) => {
     e.preventDefault();

@@ -56,6 +56,7 @@ function createApp({ dataDir = path.join(__dirname, '..', 'data'), dbFile, backu
   app.locals.v = assetVersion;
   app.use('/static', express.static(path.join(root, 'public'), { maxAge: 0 }));
   app.use('/vendor/bootstrap', express.static(path.join(root, 'node_modules', 'bootstrap', 'dist'), { maxAge: '7d' }));
+  app.use('/vendor/bootstrap-icons', express.static(path.join(root, 'node_modules', 'bootstrap-icons', 'font'), { maxAge: '7d' }));
   app.get('/healthz', (req, res) => res.json({ ok: true }));
 
   app.use(express.json({ limit: '100kb' }));

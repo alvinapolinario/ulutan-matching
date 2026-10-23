@@ -1,18 +1,30 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Log in · Ulutan</title><link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css"><link rel="stylesheet" href="/static/css/app.css?v=<%= locals.v || '' %>"></head>
+<title>Log in · Ulutan</title>
+<link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css">
+<link rel="stylesheet" href="/vendor/bootstrap-icons/bootstrap-icons.css">
+<link rel="stylesheet" href="/static/css/app.css?v=<%= locals.v || '' %>"></head>
 <body class="d-flex align-items-center justify-content-center" style="min-height:100vh">
 <form method="post" action="/login" class="card p-4" style="width:100%;max-width:380px">
-  <h1 class="h4 fw-bold mb-1">ULUTAN</h1>
-  <p class="text-muted small mb-3">Tapad-Tapad registration, matching &amp; fight display</p>
+  <div class="text-center mb-3">
+    <div class="display-6" style="color:#f5b400"><i class="bi bi-trophy-fill" aria-hidden="true"></i></div>
+    <h1 class="h4 fw-bold mb-1">ULUTAN</h1>
+    <p class="text-muted small mb-0">Tapad-Tapad registration, matching &amp; fight display</p>
+  </div>
   <% if (typeof notice !== 'undefined' && notice) { %><div class="alert alert-warning py-2" role="status"><%= notice %></div><% } %>
   <% if (error) { %><div class="alert alert-danger py-2" role="alert"><%= error %></div><% } %>
   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
   <input type="hidden" name="next" value="<%= next %>">
   <label class="form-label" for="username">Username</label>
-  <input class="form-control mb-3" id="username" name="username" value="<%= username %>" autocomplete="username" autofocus required>
+  <div class="input-group mb-3">
+    <span class="input-group-text"><i class="bi bi-person" aria-hidden="true"></i></span>
+    <input class="form-control" id="username" name="username" value="<%= username %>" autocomplete="username" autofocus required>
+  </div>
   <label class="form-label" for="password">Password</label>
-  <input class="form-control mb-3" id="password" type="password" name="password" autocomplete="current-password" required>
-  <button class="btn btn-dark w-100">Log in</button>
+  <div class="input-group mb-3">
+    <span class="input-group-text"><i class="bi bi-key" aria-hidden="true"></i></span>
+    <input class="form-control" id="password" type="password" name="password" autocomplete="current-password" required>
+  </div>
+  <button class="btn btn-dark w-100"><i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Log in</button>
 </form>
 </body></html>

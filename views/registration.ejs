@@ -1,13 +1,13 @@
 <%- include('partials/head') %>
 <div class="d-flex align-items-center mb-3 gap-2 flex-wrap">
-  <h1 class="page-title">Registration</h1>
+  <h1 class="page-title"><i class="bi bi-person-plus" aria-hidden="true"></i>Registration</h1>
   <span id="liveDot" class="live-dot" title="Connecting…"></span>
   <div class="ms-auto d-flex gap-3 small text-muted" id="totals"></div>
 </div>
 <div class="row g-3">
   <div class="col-xl-4 col-lg-5">
     <form class="card p-3 reg-form" id="regForm" autocomplete="off" novalidate>
-      <h2 class="h6 fw-bold mb-3">New entry</h2>
+      <h2 class="h6 fw-bold mb-3"><i class="bi bi-pencil-square" aria-hidden="true"></i> New entry</h2>
       <div class="alert alert-danger py-2 d-none" id="regError" role="alert"></div>
       <label class="form-label" for="participantName">Participant (owner) name</label>
       <input class="form-control mb-1" id="participantName" name="participantName" list="participantList" maxlength="100" required>
@@ -33,7 +33,7 @@
           <div class="small lb-info" id="lb2Info"></div>
         </div>
       </div>
-      <div class="form-text mb-3">Type the numbers printed on the bands from management, or leave them blank and add them later with <b>+ Legband</b>. <kbd>Enter</kbd> on Legband 2 (or on an empty Legband 1) saves.</div>
+      <div class="form-text mb-3">Type the numbers printed on the bands from management, or leave them blank and add them later with the <b>Legband</b> button. <kbd>Enter</kbd> on Legband 2 (or on an empty Legband 1) saves.</div>
       <% } else { %>
       <div class="form-text mb-2">Shown under the entry name on the TV. Press <kbd>Enter</kbd> to save.</div>
       <label class="form-label" for="legbandCount">Legbands to issue now</label>
@@ -46,20 +46,23 @@
         <span class="next-lb lb" id="nextLb">—</span>
       </div>
       <% } %>
-      <button class="btn btn-dark btn-lg" type="submit" id="regSubmit">Save entry</button>
+      <button class="btn btn-dark btn-lg" type="submit" id="regSubmit"><i class="bi bi-check2" aria-hidden="true"></i> Save entry</button>
     </form>
     <div class="card p-3 mt-3 d-none" id="lastSaved" aria-live="polite"></div>
   </div>
   <div class="col-xl-8 col-lg-7">
     <div class="card">
       <div class="card-header bg-white d-flex flex-wrap gap-2 align-items-center">
-        <input class="form-control form-control-sm" style="max-width:240px" id="search" placeholder="Search name, entry no. or legband" aria-label="Search entries">
+        <div class="input-group input-group-sm" style="max-width:260px">
+          <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
+          <input class="form-control" id="search" placeholder="Search name, entry no. or legband" aria-label="Search entries">
+        </div>
         <select class="form-select form-select-sm" style="max-width:160px" id="statusFilter" aria-label="Filter by status">
           <option value="">All statuses</option><option>COMPLETE</option><option>INCOMPLETE</option><option>WITHDRAWN</option>
         </select>
         <div class="ms-auto d-flex gap-2">
-          <a class="btn btn-sm btn-outline-dark" href="/reports/registration" target="_blank">Print</a>
-          <a class="btn btn-sm btn-outline-dark" href="/reports/registration?format=csv">Export CSV</a>
+          <a class="btn btn-sm btn-outline-dark" href="/reports/registration" target="_blank"><i class="bi bi-printer" aria-hidden="true"></i> Print</a>
+          <a class="btn btn-sm btn-outline-dark" href="/reports/registration?format=csv"><i class="bi bi-filetype-csv" aria-hidden="true"></i> Export CSV</a>
         </div>
       </div>
       <div class="table-responsive" style="max-height:70vh">
