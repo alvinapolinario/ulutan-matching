@@ -79,7 +79,7 @@
       if (!(await lookup('red'))) return;
       if (!inputs.blue.value.trim()) { inputs.blue.focus(); return; }
       if (!(await lookup('blue'))) return;
-      // Server checks the pair rules (same legband, same entry, same owner, event open)
+      // Server checks the pair rules (same legband, same entry, availability, event open)
       // and, in DRAW mode, that the drawn fight number is still free.
       const body = { red: inputs.red.value, blue: inputs.blue.value };
       if (DRAW && fightInput.value.trim()) body.fightNumber = fightInput.value.trim();

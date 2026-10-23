@@ -99,9 +99,10 @@ test('registration: closed event, withdraw rules, editing permissions', async (t
   assert.equal((await admin.patch(`${base}/entries/${a.id}`, { entryName: 'Fixed' })).status, 400, 'admin needs a reason');
   const fix = await admin.patch(`${base}/entries/${a.id}`, { entryName: 'Fixed', reason: 'typo' });
   assert.equal(fix.status, 200);
-  // Changing owner of A to B's owner would make Fight #1 same-owner -> rejected
-  const clash = await admin.patch(`${base}/entries/${a.id}`, { participantName: 'B', reason: 'owner fix' });
-  assert.equal(clash.status, 409);
+  // Changing owner of A to B's owner makes Fight #1 a same-owner fight; that is allowed (owner may be a placeholder like "-")
+  const sameOwner = await admin.patch(`${base}/entries/${a.id}`, { participantName: 'B', reason: 'owner fix' });
+  assert.equal(sameOwner.status, 200);
+  assert.equal(sameOwner.body.participantName, 'B');
   // Withdraw: only admin, needs reason, not when matched
   assert.equal((await op.post(`${base}/entries/${c.id}/withdraw`, { reason: 'x' })).status, 403);
   assert.equal((await admin.post(`${base}/entries/${c.id}/withdraw`, {})).status, 400);

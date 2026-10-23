@@ -48,7 +48,11 @@ function createMatchService(store, bus) {
   }
   const fieldError = (field, message, code) => badRequest(message, code || 'MATCH_INVALID', { field });
 
-  /** Rules 1-7: both legbands exist in this event, differ, are available, and are not same entry / same owner. */
+  /**
+   * Rules: both legbands exist in this event, differ, are available, and are not from the same entry.
+   * Two entries of the same owner MAY be matched: the owner field is often a placeholder (e.g. "-")
+   * when only the entry name is known, so it cannot be trusted to identify a real person.
+   */
   function validatePair(d, ev, redInput, blueInput) {
     const redNo = normalizeLegband(redInput, ev.legbandWidth);
     const blueNo = normalizeLegband(blueInput, ev.legbandWidth);
@@ -64,9 +68,6 @@ function createMatchService(store, bus) {
     if (!red.available) throw fieldError('red', red.unavailableReason || 'Red Corner legband is unavailable.', 'UNAVAILABLE');
     if (!blue.available) throw fieldError('blue', blue.unavailableReason || 'Blue Corner legband is unavailable.', 'UNAVAILABLE');
     if (redLb.entryId === blueLb.entryId) throw fieldError('blue', 'Matching two chickens from the same entry is not allowed.', 'SAME_ENTRY');
-    if (red.participant && blue.participant && red.participant.id === blue.participant.id) {
-      throw fieldError('blue', `Both legbands belong to the same owner (${red.participant.name}). Matching the same owner is not allowed.`, 'SAME_OWNER');
-    }
     return { redLb, blueLb, red, blue };
   }
 

@@ -233,18 +233,7 @@ function createRegistrationService(store, bus) {
           const pName = cleanText(participantName, 100);
           if (!pName) throw badRequest('Participant name is required.', 'VALIDATION', { field: 'participantName' });
           const p = findOrCreateParticipant(d, pName);
-          if (p.id !== entry.participantId) {
-            // Changing the owner must not create a same-owner fight retroactively.
-            for (const lb of lbs.filter((l) => l.matchId)) {
-              const m = d.matches.find((x) => x.id === lb.matchId);
-              if (!m || m.status === 'CANCELLED') continue;
-              const otherId = m.redLegbandId === lb.id ? m.blueLegbandId : m.redLegbandId;
-              const other = d.legbands.find((l) => l.id === otherId);
-              const otherEntry = other && d.entries.find((e) => e.id === other.entryId);
-              if (otherEntry && otherEntry.participantId === p.id) throw conflict(`That owner is already on the other side of ${fightLabel(m.fightNumber)}.`);
-            }
-            entry.participantId = p.id;
-          }
+          if (p.id !== entry.participantId) entry.participantId = p.id;
         }
         if (entryName !== undefined) {
           const eName = cleanText(entryName, 100);

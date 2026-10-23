@@ -68,8 +68,10 @@ number can be corrected with **Edit** until that legband is used in a match. Eve
 5. After confirming, the inputs clear and the cursor returns to Red for the next match.
 
 The system refuses (with a clear message): unregistered legbands, the same legband twice, two chickens of the
-same entry, **two entries of the same owner**, legbands already matched, legbands from a cancelled match,
-withdrawn legbands, and matching while the event is not open. A repeated click or Enter never creates a duplicate.
+same entry, legbands already matched, legbands from a cancelled match, withdrawn legbands, and matching while
+the event is not open. A repeated click or Enter never creates a duplicate. Two different entries registered
+under the same owner name **may** be matched (the owner is often just a placeholder such as `-` when only the
+entry name is known), so check the names in the confirm dialog.
 
 ### Running the fights (TV Control)
 - **Next fight →** sets the current fight (the TV never advances by itself).
@@ -341,7 +343,7 @@ Everything is in the `data/` folder:
   Numbers can repeat across different events.
 - Entry: exactly two legband slots; may be saved with one and completed later.
 - One fight per legband (no rematches). A cancelled match makes its legbands unusable.
-- Same owner can never be matched against themselves (even with different entries).
+- Different entries of the same owner may be matched against each other; only two chickens of the *same entry* are refused.
 - Fight numbers: *Bunot* mode — the drawn number is typed and checked inside the transaction (unique per event, never reused, cancelled ones included); *Automatic* mode — a server counter. Running order follows fight number in Bunot mode.
 - Results: winner 1, loser 0, draw ½ each. **Reports → Standings** totals points per entry.
 

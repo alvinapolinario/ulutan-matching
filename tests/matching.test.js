@@ -35,7 +35,8 @@ test('matching: validation rules with clear messages', async (t) => {
   r = await check('001', '099'); assert.equal(r.body.details.field, 'blue'); assert.equal(r.body.code, 'LEGBAND_NOT_FOUND');
   r = await check('001', '1'); assert.equal(r.body.code, 'SAME_LEGBAND');
   r = await check('001', '002'); assert.equal(r.body.code, 'SAME_ENTRY'); assert.match(r.body.error, /same entry is not allowed/);
-  r = await check('001', '003'); assert.equal(r.body.code, 'SAME_OWNER', 'Alvin 1 vs Alvin 2 is the same owner');
+  r = await check('001', '003'); assert.equal(r.status, 200, 'Alvin 1 vs Alvin 2: same owner but different entries is allowed');
+  assert.equal(r.body.red.participant.name, 'Alvin'); assert.equal(r.body.blue.participant.name, 'Alvin');
   r = await check('abc', '003'); assert.equal(r.body.details.field, 'red');
 
   const ok = await op.post(`${base}/matches`, { red: '1', blue: '5', idempotencyKey: key() });
