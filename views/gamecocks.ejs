@@ -15,20 +15,24 @@
       <input class="form-control" id="search" placeholder="Search legband, entry name, owner or fight no." aria-label="Search gamecocks">
     </div>
     <select class="form-select form-select-sm" style="max-width:190px" id="sortBy" aria-label="Sort">
+      <option value="entry" selected>Sort by entry #</option>
       <option value="legband">Sort by legband</option>
-      <option value="entry">Sort by entry name</option>
       <option value="owner">Sort by owner</option>
       <option value="fight">Sort by fight no.</option>
     </select>
     <span class="small text-muted ms-auto" id="counts"></span>
   </div>
   <div class="table-responsive" style="max-height:75vh">
-    <table class="table table-sm table-hover align-middle mb-0 gc-table">
-      <thead class="sticky-top bg-white"><tr>
-        <th style="width:90px">Legband</th><th>Entry Name</th><th style="width:100px">Entry No.</th><th>Owner</th>
-        <th style="width:150px">Status</th><th style="width:120px">Fight</th><th>Opponent</th>
+    <table class="table table-bordered align-middle mb-0 gc-table">
+      <thead class="sticky-top"><tr>
+        <th style="width:110px">Entry #</th>
+        <th>Entry Name/Owner</th>
+        <th style="width:130px">Legband</th>
+        <th style="width:130px">Status</th>
+        <th style="width:120px">Fight</th>
+        <th style="width:180px">Opponent</th>
       </tr></thead>
-      <tbody id="gcRows"><tr><td colspan="7" class="text-muted">Loading…</td></tr></tbody>
+      <tbody id="gcRows"><tr><td colspan="6" class="text-muted">Loading…</td></tr></tbody>
     </table>
   </div>
 </div>
