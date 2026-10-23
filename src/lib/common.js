@@ -42,6 +42,8 @@ const LEGBAND_STATUSES = ['AVAILABLE', 'RESERVED', 'MATCHED', 'WITHDRAWN', 'INAC
  * Match lifecycle
  *   (DRAFT, future) -> CONFIRMED -> COMPLETED (result 1-0, 0-1, 1/2-1/2)
  *                      CONFIRMED -> CANCELLED (legbands become INACTIVE; fight number never reused)
+ *                      CONFIRMED -> unmatched (human error): the match is removed, both legbands
+ *                        return to AVAILABLE, and the fight number can be used again
  */
 const MATCH_STATUSES = ['DRAFT', 'CONFIRMED', 'CANCELLED', 'COMPLETED'];
 const RESULTS = { RED: { red: 1, blue: 0 }, BLUE: { red: 0, blue: 1 }, DRAW: { red: 0.5, blue: 0.5 } };

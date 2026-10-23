@@ -42,12 +42,12 @@ async function login(ctx, username, password) {
 }
 
 /** Fresh app + admin + operator + an event open for matching. */
-async function setup({ status = 'MATCHING_OPEN', maxLegbands = 500, fightNumberMode = 'AUTO' } = {}) {
+async function setup({ status = 'MATCHING_OPEN', maxLegbands = 500, fightNumberMode = 'AUTO', legbandMode = 'AUTO' } = {}) {
   const ctx = await startApp();
   const admin = ctx.services.users.create({ username: 'admin', password: 'admin123', role: 'ADMIN' });
   ctx.services.users.create({ username: 'op', password: 'op1234', role: 'OPERATOR' });
   ctx.services.users.create({ username: 'tv', password: 'tv1234', role: 'DISPLAY' });
-  const ev = ctx.services.events.create({ name: 'Test Derby', date: '2026-10-17', venue: 'Pit', startingFightNumber: 1, maxLegbands, fightNumberMode }, admin.id);
+  const ev = ctx.services.events.create({ name: 'Test Derby', date: '2026-10-17', venue: 'Pit', startingFightNumber: 1, maxLegbands, fightNumberMode, legbandMode }, admin.id);
   const path = ['DRAFT', 'REGISTRATION_OPEN', 'MATCHING_OPEN', 'ACTIVE'];
   for (const s of path.slice(1, path.indexOf(status) + 1)) ctx.services.events.setStatus(ev.id, s, admin.id);
   ctx.eventId = ev.id;

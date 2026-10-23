@@ -157,6 +157,43 @@ test('matching: cancel makes legbands unusable and never reuses the fight number
   assert.equal(ctx.store.data.matches.length, 2, 'cancelled match is kept, never deleted');
 });
 
+test('matching: unmatch releases a mistaken pairing so both legbands and the fight number can be used again', async (t) => {
+  const ctx = await setup();
+  t.after(ctx.stop);
+  const op = await login(ctx, 'op', 'op1234');
+  const tv = await login(ctx, 'tv', 'tv1234');
+  const base = `/api/events/${ctx.eventId}`;
+  await seed(ctx, op);
+  const m1 = (await op.post(`${base}/matches`, { red: '001', blue: '005', idempotencyKey: key() })).body.match;
+  const m2 = (await op.post(`${base}/matches`, { red: '007', blue: '009', idempotencyKey: key() })).body.match;
+  await op.post(`${base}/display/advance`, { direction: 'next' });
+
+  assert.equal((await tv.post(`${base}/matches/${m1.id}/unmatch`, { reason: 'typo' })).status, 403, 'display account cannot unmatch');
+  assert.equal((await op.post(`${base}/matches/${m1.id}/unmatch`, {})).status, 400, 'reason required');
+  const undone = await op.post(`${base}/matches/${m1.id}/unmatch`, { reason: 'wrong red typed' });
+  assert.equal(undone.status, 200);
+  assert.equal(undone.body.fightNumber, 1);
+  assert.equal((await op.get(`${base}/legbands/001`)).body.available, true);
+  assert.equal((await op.get(`${base}/legbands/005`)).body.available, true);
+  assert.equal((await op.get(`${base}/matches/${m1.id}`)).status, 404);
+  assert.equal(ctx.store.data.matches.some((m) => m.id === m1.id), false, 'mistaken match is removed');
+  const again = (await op.post(`${base}/matches`, { red: '001', blue: '010', idempotencyKey: key() })).body.match;
+  assert.equal(again.fightNumber, 3, 'an earlier fight number is not filled in while a later fight remains');
+  const latest = (await op.post(`${base}/matches`, { red: '003', blue: '011', idempotencyKey: key() })).body.match;
+  const undoneLatest = await op.post(`${base}/matches/${latest.id}/unmatch`, { reason: 'last one was wrong' });
+  assert.equal(undoneLatest.status, 200);
+  const reused = (await op.post(`${base}/matches`, { red: '003', blue: '006', idempotencyKey: key() })).body.match;
+  assert.equal(reused.fightNumber, latest.fightNumber, 'unmatching the latest fight gives that number back');
+  await op.post(`${base}/matches/${m2.id}/result`, { result: 'RED' });
+  assert.equal((await op.post(`${base}/matches/${m2.id}/unmatch`, { reason: 'too late' })).status, 409);
+  const ds = (await op.get(`${base}/display-state`)).body;
+  assert.notEqual(ds.current && ds.current.id, m1.id);
+  const audit = ctx.store.data.auditLogs.find((a) => a.action === 'MATCH_UNMATCHED');
+  assert.equal(audit.reason, 'wrong red typed');
+  assert.equal(audit.oldValues.red, '001');
+  assert.equal(audit.oldValues.blue, '005');
+});
+
 test('matching: correction, fight number change, reorder, results and standings', async (t) => {
   const ctx = await setup();
   t.after(ctx.stop);

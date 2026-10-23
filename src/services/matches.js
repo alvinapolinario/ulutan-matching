@@ -239,6 +239,55 @@ function createMatchService(store, bus) {
       return row;
     },
 
+    /**
+     * Undo a confirmed match that was entered by mistake and has not been fought.
+     * Both legbands become available again and the fight number is released.
+     * Unlike cancel, the match is removed; the audit log keeps the record.
+     */
+    unmatch(eventId, matchId, reason, user) {
+      const why = cleanText(reason, 300);
+      if (!why) throw badRequest('A reason is required to unmatch.', 'VALIDATION', { field: 'reason' });
+      const row = store.transaction((d) => {
+        const ev = requireEvent(d, eventId);
+        if (!CAN_MATCH.includes(ev.status)) throw badRequest(`Matching is not open for this event (status: ${ev.status}).`, 'EVENT_CLOSED');
+        const m = requireMatch(d, ev, matchId);
+        if (m.status !== 'CONFIRMED') throw conflict(`Only a confirmed match that has not been fought can be unmatched. ${fightLabel(m.fightNumber)} is ${m.status}.`);
+        const snapshot = matchRow(d, m);
+        const ts = now();
+        for (const id of [m.redLegbandId, m.blueLegbandId]) {
+          const lb = d.legbands.find((l) => l.id === id);
+          if (!lb || lb.status !== 'MATCHED' || lb.matchId !== m.id) throw conflict(`Legband ${lb ? lb.number : id} is not in this match.`);
+          lb.status = 'AVAILABLE';
+          lb.matchId = null;
+          lb.statusReason = null;
+          lb.updatedAt = ts;
+        }
+        if (ev.display.currentMatchId === m.id) {
+          const nxt = nextPending(d, ev, m);
+          ev.display.currentMatchId = nxt ? nxt.id : null;
+        }
+        const fightNumber = m.fightNumber;
+        const idx = d.matches.findIndex((x) => x.id === m.id);
+        d.matches.splice(idx, 1);
+        if (!isDraw(ev)) {
+          const rest = d.matches.filter((x) => x.eventId === ev.id);
+          const floor = (ev.startingFightNumber || 1) - 1;
+          const maxN = rest.reduce((mx, x) => Math.max(mx, x.fightNumber), floor);
+          if (fightNumber > maxN) ev.nextFightNumber = maxN + 1;
+        }
+        bumpVersion(d, ev.id);
+        addAudit(store, d, {
+          eventId: ev.id, entity: 'match', entityId: m.id, matchId: m.id, action: 'MATCH_UNMATCHED',
+          oldValues: { fightNumber, red: snapshot.red.legband, blue: snapshot.blue.legband, status: 'CONFIRMED' },
+          newValues: { removed: true, legbandsAvailable: true },
+          reason: why, userId: user.id,
+        });
+        return snapshot;
+      });
+      publish(eventId, 'match:unmatched', { match: row });
+      return row;
+    },
+
     /** Replace one corner's legband (e.g. operator typed the wrong number). The removed legband becomes available again. */
     correctLegband(eventId, matchId, { corner, legband, reason }, user) {
       const why = cleanText(reason, 300);

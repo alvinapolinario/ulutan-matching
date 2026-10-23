@@ -239,10 +239,31 @@
         <td class="fw-bold">#${pad(m.fightNumber)}</td>
         <td class="row-red">${esc(m.red.entryName)}</td><td class="lb row-red">${esc(m.red.legband)}</td>
         <td class="row-blue">${esc(m.blue.entryName)}</td><td class="lb row-blue">${esc(m.blue.legband)}</td>
-        <td>${statusBadge(m.status)}</td><td class="small text-muted">${esc(m.confirmedBy || '')}</td></tr>`).join('')
-        : '<tr><td colspan="7" class="text-muted">No matches yet.</td></tr>';
+        <td>${statusBadge(m.status)}</td><td class="small text-muted">${esc(m.confirmedBy || '')}</td>
+        <td class="text-end">${m.status === 'CONFIRMED' ? `<button type="button" class="btn btn-sm btn-outline-danger" data-unmatch="${m.id}" data-label="Fight #${pad(m.fightNumber)} (${esc(m.red.legband)} vs ${esc(m.blue.legband)})">Unmatch</button>` : ''}</td></tr>`).join('')
+        : '<tr><td colspan="8" class="text-muted">No matches yet.</td></tr>';
     } catch (e) { toast(e.message, 'danger'); }
   }
+  $('recentRows').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-unmatch]');
+    if (!btn || btn.disabled) return;
+    const r = await App.prompt({
+      title: `Unmatch ${btn.dataset.label}?`,
+      label: 'Reason — this pairing was entered by mistake',
+      confirmText: 'Unmatch',
+      danger: true,
+    });
+    if (!r) return;
+    btn.disabled = true;
+    try {
+      await api('POST', ev(`/matches/${btn.dataset.unmatch}/unmatch`), { reason: r.value });
+      toast(`${btn.dataset.label} unmatched. Both legbands can be matched again.`, 'warning', 5000);
+      loadRecent();
+    } catch (err) {
+      toast(err.message, 'danger');
+      btn.disabled = false;
+    }
+  });
   async function loadEvent() {
     try {
       const e = await api('GET', ev(''));

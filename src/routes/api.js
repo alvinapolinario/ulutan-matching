@@ -54,6 +54,7 @@ module.exports = function apiRoutes(services) {
   r.get('/events/:eventId/matches', requireRole(...STAFF), (req, res) => res.json(matches.list(req.event.id, req.query)));
   r.get('/events/:eventId/matches/:matchId', requireRole(...STAFF), (req, res) => res.json(matches.get(req.event.id, req.params.matchId)));
   r.post('/events/:eventId/matches/:matchId/cancel', requireRole('ADMIN'), (req, res) => res.json(matches.cancel(req.event.id, req.params.matchId, req.body.reason, me(req))));
+  r.post('/events/:eventId/matches/:matchId/unmatch', requireRole(...STAFF), (req, res) => res.json(matches.unmatch(req.event.id, req.params.matchId, req.body.reason, me(req))));
   r.post('/events/:eventId/matches/:matchId/correct', requireRole('ADMIN'), (req, res) => res.json(matches.correctLegband(req.event.id, req.params.matchId, req.body, me(req))));
   r.post('/events/:eventId/matches/:matchId/fight-number', requireRole('ADMIN'), (req, res) => res.json(matches.setFightNumber(req.event.id, req.params.matchId, req.body, me(req))));
   r.post('/events/:eventId/matches/:matchId/move', requireRole('ADMIN'), (req, res) => res.json(matches.move(req.event.id, req.params.matchId, req.body.direction, req.body.reason, me(req))));

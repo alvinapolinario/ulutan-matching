@@ -81,6 +81,22 @@ test('draw mode: the drawn fight number is typed in, must be unique, and sets th
   assert.deepEqual(order, [1, 2]);
 });
 
+test('draw mode: unmatch frees the drawn fight number and both legbands', async (t) => {
+  const ctx = await setup({ fightNumberMode: 'DRAW' });
+  t.after(ctx.stop);
+  const op = await login(ctx, 'op', 'op1234');
+  const base = `/api/events/${ctx.eventId}`;
+  for (const p of ['A', 'B', 'C', 'D']) await op.post(`${base}/entries`, { participantName: p });
+  const made = (await op.post(`${base}/matches`, { red: '1', blue: '3', fightNumber: 17, idempotencyKey: key() })).body.match;
+  await op.post(`${base}/display/advance`, { direction: 'next' });
+  const undone = await op.post(`${base}/matches/${made.id}/unmatch`, { reason: 'wrong pair' });
+  assert.equal(undone.status, 200);
+  assert.equal((await op.get(`${base}/display-state`)).body.current, null);
+  const again = await op.post(`${base}/matches`, { red: '1', blue: '3', fightNumber: 17, idempotencyKey: key() });
+  assert.equal(again.status, 201);
+  assert.equal(again.body.match.fightNumber, 17);
+});
+
 test('draw mode: event setting can switch to AUTO; old databases migrate to DRAW', async (t) => {
   const ctx = await setup({ fightNumberMode: 'DRAW' });
   t.after(ctx.stop);
