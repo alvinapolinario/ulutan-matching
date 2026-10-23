@@ -107,7 +107,7 @@ the event computer, using **Windows PowerShell** (or Windows Terminal). Only the
 *Run as administrator*.
 
 > **Quick way:** steps 2, 3, 4, 5 and 7 are automated by `deploy/pm2-start.sh`. Install Node.js (step 1) and
-> [Git for Windows](https://git-scm.com/download/win), copy the app to `C:\ulutan`, open **Git Bash** in that
+> [Git for Windows](https://git-scm.com/download/win), copy the app to `C:\nodeapps\ulutan`, open **Git Bash** in that
 > folder and run `bash deploy/pm2-start.sh`. It installs dependencies and PM2, starts the server, checks
 > `/healthz`, saves the process list and registers the login autostart. Run it again after copying new
 > app files. The firewall (step 6), automatic login and power settings (step 7) still need to be done by hand.
@@ -121,10 +121,10 @@ npm -v
 ```
 
 #### 2. Copy the app and install its dependencies
-Copy the `ulutan` folder to **`C:\ulutan`**. Avoid *Desktop*, *Documents* or any OneDrive-synced folder:
+Copy the `ulutan` folder to **`C:\nodeapps\ulutan`**. Avoid *Desktop*, *Documents* or any OneDrive-synced folder:
 OneDrive can lock `data\db.json` while it syncs.
 ```powershell
-cd C:\ulutan
+cd C:\nodeapps\ulutan
 npm install --omit=dev
 ```
 
@@ -157,7 +157,7 @@ To change a value, either edit the file or set the variable when starting, e.g.
 
 #### 5. Start the server and check it
 ```powershell
-cd C:\ulutan
+cd C:\nodeapps\ulutan
 pm2 start ecosystem.config.js
 pm2 status                 # ulutan should be "online"
 pm2 logs ulutan --lines 30 # shows the addresses, press Ctrl+C to leave the log view
@@ -191,7 +191,7 @@ pm2-startup install   # makes PM2 restore that list when this user logs in
   *Local Service* account. Follow its README (`npm run configure`, `npm run configure-policy`,
   `npm run setup`, all *(admin)*), then run **all** `pm2` commands from an administrator PowerShell
   (its `PM2_HOME` is `C:\ProgramData\pm2\home`). Give that account write access to the app folder:
-  `icacls "C:\ulutan" /grant "LOCAL SERVICE:(OI)(CI)M" /T` *(admin)*. Do **not** also install
+  `icacls "C:\nodeapps\ulutan" /grant "LOCAL SERVICE:(OI)(CI)M" /T` *(admin)*. Do **not** also install
   `pm2-windows-startup` in that case.
 
 Stop the PC from sleeping while plugged in *(admin)*:
@@ -225,8 +225,8 @@ forever: `pm2 install pm2-logrotate` (keeps 10 MB × 30 files by default).
 #### 10. Updating the app
 ```powershell
 pm2 stop ulutan
-# copy the new app files over C:\ulutan  (never replace or delete C:\ulutan\data)
-cd C:\ulutan
+# copy the new app files over C:\nodeapps\ulutan  (never replace or delete C:\nodeapps\ulutan\data)
+cd C:\nodeapps\ulutan
 npm install --omit=dev
 pm2 restart ulutan --update-env
 pm2 save
@@ -245,7 +245,7 @@ If you changed `ecosystem.config.js` by hand, use `pm2 delete ulutan` → `pm2 s
   is locked and the port is taken). If the log says *"Database … is already in use by process …"*, check
   `pm2 status` and Task Manager for a second `node.exe`; locks left by a crash or power cut are cleared automatically.
 - `pm2 startup` (the Linux command) does nothing on Windows — use `pm2-startup install` (or pm2-installer) as above.
-- Exclude `C:\ulutan\data` from OneDrive / backup tools that sync files while they are open.
+- Exclude `C:\nodeapps\ulutan\data` from OneDrive / backup tools that sync files while they are open.
 - Keep the PC on the private event network only; the app uses plain HTTP.
 
 #### Removing PM2 autostart
