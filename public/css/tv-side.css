@@ -93,3 +93,7 @@ body.wala { background: #1d4fb8; }
 .sparkles i:nth-child(9) { left: 2%; top: 80%; } .sparkles i:nth-child(3) { left: 2%; top: 45%; }
 /* Bigger entry name (owner size unchanged) */
 .side-entry:not(.idle) { font-size: 132px; margin-top: 14px; -webkit-text-stroke-width: 3px; }
+/* Entry name too long for one line: wrap onto a second line (tv-side.js hides the owner to make room
+   and shrinks the font when the name would need a third line). */
+.side-entry.two-line { white-space: normal; text-overflow: clip; overflow-wrap: break-word; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1.04; }
+.side-entry.two-line.measure { display: block; -webkit-line-clamp: unset; }

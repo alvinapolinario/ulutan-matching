@@ -28,6 +28,32 @@
     else stamp.textContent = '';
   }
 
+  /**
+   * An entry name too long for one line wraps onto a second line; the owner line is hidden to make room.
+   * If it would still need a third line, the font shrinks until the whole name fits on two lines.
+   */
+  const MIN_NAME_PX = 56;
+  function fitName() {
+    const el = $('entryName');
+    el.classList.remove('two-line');
+    el.style.fontSize = '';
+    const tooLong = !el.classList.contains('idle') && el.scrollWidth > el.clientWidth + 1;
+    el.classList.toggle('two-line', tooLong);
+    $('entryOwner').classList.toggle('hidden', tooLong);
+    if (!tooLong) return;
+    // Count lines with the 2-line clamp lifted (offsetHeight ignores the stage's scale transform).
+    el.classList.add('measure');
+    const lines = () => Math.round(el.offsetHeight / parseFloat(getComputedStyle(el).lineHeight));
+    let px = parseFloat(getComputedStyle(el).fontSize);
+    while (px > MIN_NAME_PX && (lines() > 2 || el.scrollWidth > el.clientWidth + 1)) {
+      px = Math.max(MIN_NAME_PX, px - 4);
+      el.style.fontSize = `${px}px`;
+    }
+    el.classList.remove('measure');
+  }
+  window.addEventListener('resize', fitName);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitName);
+
   function idle(text) {
     setOutcome(null);
     $('entryName').textContent = text;
@@ -36,6 +62,7 @@
     $('sideBody').classList.add('hidden');
     $('entryName').classList.add('idle');
     $('scores').classList.add('hidden');
+    fitName();
   }
 
   function render(s) {
@@ -49,6 +76,7 @@
     $('sideBody').classList.remove('hidden');
     $('entryName').classList.remove('idle');
     $('scores').classList.remove('hidden');
+    fitName();
     setOutcome(b.outcome);
     b.scores.forEach((sc, i) => {
       $(`score${i + 1}`).textContent = fmt(sc.points);
