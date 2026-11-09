@@ -1,5 +1,5 @@
 'use strict';
-const { notFound, pad, points, perEntry } = require('../lib/common');
+const { notFound, pad, points, perEntry, BIRD_LABEL } = require('../lib/common');
 
 const RESULT_LABEL = { RED: 'Red wins (1-0)', BLUE: 'Blue wins (0-1)', DRAW: 'Draw (½-½)' };
 
@@ -7,15 +7,16 @@ function createReportService(store, { registration, matches }) {
   const userName = (id) => { const u = store.data.users.find((x) => x.id === id); return u ? u.username : ''; };
   const fmtTime = (iso) => (iso ? new Date(iso).toLocaleString('en-PH', { hour12: true }) : '');
   const fight = (n) => (n == null ? '' : pad(n));
+  const grams = (g) => (g == null ? '' : `${g} g`);
   const matchCols = [
     { key: 'fight', label: 'Fight' },
-    { key: 'redEntry', label: 'Red Entry' }, { key: 'redLb', label: 'Red LB', legband: true },
-    { key: 'blueEntry', label: 'Blue Entry' }, { key: 'blueLb', label: 'Blue LB', legband: true },
+    { key: 'redEntry', label: 'Red Entry' }, { key: 'redLb', label: 'Red LB', legband: true }, { key: 'redWt', label: 'Red Wt' },
+    { key: 'blueEntry', label: 'Blue Entry' }, { key: 'blueLb', label: 'Blue LB', legband: true }, { key: 'blueWt', label: 'Blue Wt' },
   ];
   const matchFlat = (m) => ({
     fight: fight(m.fightNumber),
-    redEntry: m.red ? `#${m.red.entryNumber} ${m.red.entryName}` : '', redLb: m.red ? m.red.legband : '',
-    blueEntry: m.blue ? `#${m.blue.entryNumber} ${m.blue.entryName}` : '', blueLb: m.blue ? m.blue.legband : '',
+    redEntry: m.red ? `#${m.red.entryNumber} ${m.red.entryName}` : '', redLb: m.red ? m.red.legband : '', redWt: m.red ? grams(m.red.weight) : '',
+    blueEntry: m.blue ? `#${m.blue.entryNumber} ${m.blue.entryName}` : '', blueLb: m.blue ? m.blue.legband : '', blueWt: m.blue ? grams(m.blue.weight) : '',
     status: m.status, result: m.result ? `${points(m.redPoints)} - ${points(m.bluePoints)}` : '',
     confirmedBy: m.confirmedBy || '', confirmedAt: fmtTime(m.confirmedAt),
     cancelledBy: m.cancelledBy || '', cancelledAt: fmtTime(m.cancelledAt), cancelReason: m.cancelReason || '',
@@ -30,21 +31,23 @@ function createReportService(store, { registration, matches }) {
         const cols = Math.max(n, ...list.map((e) => e.legbands.length));
         const rows = list.map((e) => ({
           entryNumber: e.entryNumber, entryName: e.entryName, address: e.address, participant: e.participantName,
-          ...Object.fromEntries(Array.from({ length: cols }, (_, i) => [`lb${i + 1}`, e.legbands[i] ? e.legbands[i].number : ''])),
+          ...Object.fromEntries(Array.from({ length: cols }, (_, i) => [`lb${i + 1}`, e.legbands[i] ? e.legbands[i].band : ''])),
+          // Each bird: "Cock 2100 g", "Stag WB 012", "Bullstag WB 020 2250 g"
+          birds: e.legbands.filter(Boolean).map((l) => [l.typeLabel, l.wingband ? `WB ${l.wingband}` : '', l.weight != null ? `${l.weight} g` : ''].filter(Boolean).join(' ')).join(' / '),
           status: e.displayStatus,
         }));
         const lbCols = Array.from({ length: cols }, (_, i) => ({ key: `lb${i + 1}`, label: `Legband ${i + 1}`, legband: true }));
-        return { columns: [{ key: 'entryNumber', label: 'Entry No.' }, { key: 'entryName', label: 'Entry Name' }, { key: 'address', label: 'Address' }, { key: 'participant', label: 'Participant' }, ...lbCols, { key: 'status', label: 'Status' }], rows };
+        return { columns: [{ key: 'entryNumber', label: 'Entry No.' }, { key: 'entryName', label: 'Entry Name' }, { key: 'address', label: 'Address' }, { key: 'participant', label: 'Participant' }, ...lbCols, { key: 'birds', label: 'Birds (type · wingband · weight)' }, { key: 'status', label: 'Status' }], rows };
       },
     },
     legbands: {
       title: 'Legband Master List',
       build(id, status) {
         const rows = registration.listLegbands(id, { status }).map((l) => ({
-          number: l.number, slot: l.slot, entryNumber: l.entry ? l.entry.entryNumber : '', entryName: l.entry ? l.entry.entryName : '',
+          number: l.number || '', type: l.typeLabel, wingband: l.wingband || '', weight: grams(l.weight), slot: l.slot, entryNumber: l.entry ? l.entry.entryNumber : '', entryName: l.entry ? l.entry.entryName : '',
           participant: l.participant ? l.participant.name : '', status: l.status, fight: l.match ? fight(l.match.fightNumber) : '',
         }));
-        return { columns: [{ key: 'number', label: 'Legband', legband: true }, { key: 'slot', label: 'Slot' }, { key: 'entryNumber', label: 'Entry No.' }, { key: 'entryName', label: 'Entry Name' }, { key: 'participant', label: 'Participant' }, { key: 'status', label: 'Status' }, { key: 'fight', label: 'Fight' }], rows };
+        return { columns: [{ key: 'number', label: 'Legband', legband: true }, { key: 'type', label: 'Type' }, { key: 'wingband', label: 'Wingband', legband: true }, { key: 'weight', label: 'Weight' }, { key: 'slot', label: 'Slot' }, { key: 'entryNumber', label: 'Entry No.' }, { key: 'entryName', label: 'Entry Name' }, { key: 'participant', label: 'Participant' }, { key: 'status', label: 'Status' }, { key: 'fight', label: 'Fight' }], rows };
       },
     },
     available: { title: 'Available Legbands', build: (id) => defs.legbands.build(id, 'AVAILABLE') },
@@ -55,13 +58,13 @@ function createReportService(store, { registration, matches }) {
         const rows = matches.gamecocks(id).map((g) => {
           const f = g.fight; const o = f && f.opponent;
           return {
-            legband: g.legband || '', slot: g.slot ? `Entry #${g.slot}` : '', entryName: g.entryName, owner: g.owner,
+            legband: g.legband || '', weight: grams(g.weight), type: g.typeLabel || '', wingband: g.wingband || '', slot: g.slot ? `Entry #${g.slot}` : '', entryName: g.entryName, owner: g.owner,
             status: label[g.status] + (f && f.outcome ? ` - ${f.outcome}` : ''),
             fight: f ? `${fight(f.fightNumber)} ${f.corner}` : '',
             opponent: o ? `${o.entryName} Entry #${o.slot} (${o.owner})` : '', oppLb: o ? o.legband : '',
           };
         });
-        return { columns: [{ key: 'legband', label: 'Legband', legband: true }, { key: 'entryName', label: 'Entry Name' }, { key: 'slot', label: 'Entry No.' }, { key: 'owner', label: 'Owner' }, { key: 'status', label: 'Status' }, { key: 'fight', label: 'Fight' }, { key: 'opponent', label: 'Opponent' }, { key: 'oppLb', label: 'Opp. LB', legband: true }], rows };
+        return { columns: [{ key: 'legband', label: 'Legband', legband: true }, { key: 'entryName', label: 'Entry Name' }, { key: 'slot', label: 'Entry No.' }, { key: 'owner', label: 'Owner' }, { key: 'status', label: 'Status' }, { key: 'fight', label: 'Fight' }, { key: 'opponent', label: 'Opponent' }, { key: 'oppLb', label: 'Opp. LB', legband: true }, { key: 'weight', label: 'Weight' }, { key: 'type', label: 'Type' }, { key: 'wingband', label: 'Wingband', legband: true }], rows };
       },
     },
     fights: {
@@ -111,7 +114,11 @@ function createReportService(store, { registration, matches }) {
         const s = registration.summary(id);
         const ds = matches.displayState(id);
         const items = [
+          ['Event type', s.eventType === 'DERBY' ? `Derby (${s.cocksPerEntry} birds per entry)` : `Hackfight (${s.cocksPerEntry} per entry)`],
+          ['Types of bird allowed', s.allowedTypes.map((t) => BIRD_LABEL[t]).join(', ')],
+          ['Weight rules (cocks)', s.weightRules ? `On — ±${s.weightRules.tolerance} g${s.weightRules.min != null || s.weightRules.max != null ? `, ${s.weightRules.min ?? '…'}–${s.weightRules.max ?? '…'} g` : ''}` : 'Off'],
           ['Participants', s.participants], ['Entries', s.entries], ['Incomplete entries', s.incompleteEntries],
+          ['Cocks', s.cocks], ['Stags', s.stags], ['Bullstags', s.bullstags], ['Cocks not weighed', s.unweighedCocks], ['Birds waiting for a legband', s.waitingForLegband],
           ['Legbands issued', s.legbandsIssued], ['Legbands left', s.legbandsLeft], ['Available legbands', s.available],
           ['Matched legbands', s.matched], ['Inactive (cancelled) legbands', s.inactive], ['Withdrawn legbands', s.withdrawn],
           ['Pending fights', s.confirmedMatches], ['Completed fights', s.completedMatches], ['Cancelled fights', s.cancelledMatches],

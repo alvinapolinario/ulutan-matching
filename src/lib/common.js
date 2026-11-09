@@ -28,12 +28,17 @@ const CAN_REGISTER = ['REGISTRATION_OPEN', 'MATCHING_OPEN', 'ACTIVE'];
 const CAN_MATCH = ['MATCHING_OPEN', 'ACTIVE'];
 const CAN_RUN_FIGHTS = ['MATCHING_OPEN', 'ACTIVE'];
 
-/** Chickens (legbands / score boxes) per entry. Set per event; events made before the setting existed use 2. */
+/**
+ * Birds (legbands / score boxes) per entry. Set per event; events made before the setting existed use 2.
+ * A derby needs at least DERBY_MIN_PER_ENTRY.
+ */
 const MIN_PER_ENTRY = 2;
 const MAX_PER_ENTRY = 5;
+const DERBY_MIN_PER_ENTRY = 3;
 const perEntry = (ev) => {
   const n = Number(ev && ev.cocksPerEntry);
-  return Number.isInteger(n) && n >= MIN_PER_ENTRY && n <= MAX_PER_ENTRY ? n : 2;
+  const min = ev && ev.eventType === 'DERBY' ? DERBY_MIN_PER_ENTRY : MIN_PER_ENTRY;
+  return Number.isInteger(n) && n >= min && n <= MAX_PER_ENTRY ? n : min;
 };
 
 /**
@@ -71,10 +76,66 @@ function normalizeLegband(input, width = 3) {
   return pad(n, width);
 }
 
+/**
+ * Birds. Every bird has a type and a legband (the number used for matching; it may be put on after
+ * registration). Stags and bullstags also carry a wingband; a cock has none and is matched by weight.
+ * Records made before types existed have no `type` and are cocks.
+ */
+const BIRD_TYPES = ['COCK', 'STAG', 'BULLSTAG'];
+const BIRD_LABEL = { COCK: 'Cock', STAG: 'Stag', BULLSTAG: 'Bullstag' };
+const birdType = (lb) => (lb && BIRD_TYPES.includes(lb.type) ? lb.type : 'COCK');
+const needsWingband = (type) => type === 'STAG' || type === 'BULLSTAG';
+/** Bird types an event accepts (set when the event is made; events from before the setting take all three). */
+const allowedTypes = (ev) => {
+  const list = ev && Array.isArray(ev.allowedTypes) ? BIRD_TYPES.filter((t) => ev.allowedTypes.includes(t)) : [];
+  return list.length ? list : [...BIRD_TYPES];
+};
+/**
+ * Weight rules for cocks, or null when the event does not use them. When on: `tolerance` is the largest
+ * difference allowed between two cocks; `min` / `max` (optional) limit a cock's weight.
+ * Events from before the on/off switch use the rules when a tolerance was set.
+ */
+const weightRules = (ev) => {
+  if (!ev) return null;
+  const on = ev.weightEnabled === undefined ? ev.weightTolerance != null : !!ev.weightEnabled;
+  if (!on) return null;
+  return { tolerance: ev.weightTolerance == null ? null : ev.weightTolerance, min: ev.minWeight == null ? null : ev.minWeight, max: ev.maxWeight == null ? null : ev.maxWeight };
+};
+/** The legband number ('' while the legband has not been put on yet). */
+const bandLabel = (lb) => (lb && lb.number) || '';
+
+/** Event kinds. A DERBY entry has at least 3 birds; a HACKFIGHT keeps the original rules (2 by default). */
+const EVENT_TYPES = ['DERBY', 'HACKFIGHT'];
+const eventType = (ev) => (ev && ev.eventType === 'DERBY' ? 'DERBY' : 'HACKFIGHT');
+
+/**
+ * Parse what an operator typed to find a bird: "7" / "L7" / "LB 007" = legband 007, "W7" / "WB-007" = wingband 007.
+ * Returns { by: 'LEG'|'WING', number: '007' } or null.
+ */
+function parseBand(input, width = 3) {
+  const s = String(input == null ? '' : input).trim().toUpperCase();
+  const m = /^(?:(LB|L|WB|W)[\s-]*)?(\d{1,6})$/.exec(s);
+  if (!m) return null;
+  const number = normalizeLegband(m[2], width);
+  if (!number) return null;
+  return { by: m[1] && m[1].startsWith('W') ? 'WING' : 'LEG', number };
+}
+
+/** Weight in grams from "2105", "2,105", "2105g" or kilograms "2.105" / "2.1kg". null when blank; NaN when invalid. */
+function parseWeight(input) {
+  const s = String(input == null ? '' : input).trim().toLowerCase().replace(/\s+/g, '');
+  if (!s) return null;
+  const m = /^(\d{1,2}(?:\.\d{1,3})?)kg$|^(\d{1,2}\.\d{1,3})$|^(\d{1,3}(?:,\d{3})|\d{1,5})g?$/.exec(s);
+  if (!m) return NaN;
+  const g = m[1] || m[2] ? Math.round(parseFloat(m[1] || m[2]) * 1000) : parseInt(m[3].replace(',', ''), 10);
+  return g >= 1 && g <= 20000 ? g : NaN;
+}
+
 module.exports = {
+  BIRD_TYPES, BIRD_LABEL, birdType, needsWingband, allowedTypes, weightRules, bandLabel, EVENT_TYPES, eventType, parseBand, parseWeight,
   AppError, badRequest, notFound, conflict, forbidden,
   ROLES, EVENT_STATUSES, EVENT_TRANSITIONS, CAN_REGISTER, CAN_MATCH, CAN_RUN_FIGHTS,
   LEGBAND_STATUSES, MATCH_STATUSES, RESULTS,
   now, pad, nameKey, cleanText, points, normalizeLegband,
-  MIN_PER_ENTRY, MAX_PER_ENTRY, perEntry,
+  MIN_PER_ENTRY, MAX_PER_ENTRY, DERBY_MIN_PER_ENTRY, perEntry,
 };

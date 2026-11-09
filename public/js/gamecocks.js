@@ -26,7 +26,7 @@
   function opponentCell(f) {
     if (!f || !f.opponent) return '-';
     const o = f.opponent;
-    return `<div class="fw-semibold">${esc(o.entryName)}</div><div class="small text-muted">${esc(o.legband)} · ${esc(o.owner)}</div>`;
+    return `<div class="fw-semibold">${esc(o.entryName)}</div><div class="small text-muted">${esc(o.legband)}${o.weight != null ? ` (${App.grams(o.weight)})` : ''} · ${esc(o.owner)}</div>`;
   }
 
   function groupsOf(list) {
@@ -72,7 +72,7 @@
       const dim = g.status === 'CANCELLED' || g.status === 'WITHDRAWN' ? 'gc-dim' : '';
       const current = g.fight && g.fight.isCurrent ? 'is-current' : '';
       return `<tr class="${i === 0 ? 'gc-entry-start' : ''} ${dim} ${current}">${entryCells}
-        <td class="gc-center">${g.legband ? `<i class="bi bi-check-lg gc-check" aria-hidden="true"></i><span class="lb">${esc(g.legband)}</span>` : '-'}</td>
+        <td class="gc-center">${g.legband ? `<i class="bi bi-check-lg gc-check" aria-hidden="true"></i><span class="lb">${esc(g.legband)}</span>` : (g.type ? '<span class="small text-warning-emphasis">no legband</span>' : '-')}${g.type ? `<div class="small">${App.typeBadge(g.type)}${g.wingband ? ` WB ${esc(g.wingband)}` : ''}${g.weight != null ? ` · ${App.grams(g.weight)}` : ''}</div>` : ''}</td>
         <td class="gc-center">${esc(statusText(g))}</td>
         <td class="gc-center">${fightCell(g.fight)}</td>
         <td class="gc-center">${opponentCell(g.fight)}</td></tr>`;

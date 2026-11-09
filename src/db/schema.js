@@ -4,12 +4,17 @@
  *
  * users        { id, username, passwordHash, role: ADMIN|OPERATOR|DISPLAY, status: ACTIVE|DISABLED, createdAt }
  * events       { id, name, date, venue, status, fightNumberMode: DRAW|AUTO, legbandMode: MANUAL|AUTO, startingFightNumber, nextFightNumber, nextEntryNumber,
- *                nextLegbandNumber, maxLegbands, cocksPerEntry (2-5; missing = 2), legbandWidth, stateVersion,
+ *                nextLegbandNumber, maxLegbands, eventType: DERBY|HACKFIGHT (missing = HACKFIGHT),
+ *                cocksPerEntry (birds per entry: derby 3-5, hackfight 2-5; missing = 2),
+ *                weightTolerance / minWeight / maxWeight (grams, for cocks; null = not checked),
+ *                legbandWidth, stateVersion,
  *                display: { currentMatchId, published, upcomingCount }, createdBy, createdAt, updatedAt,
  *                archivedAt, archiveFile }   (set when status becomes ARCHIVED; the file is a copy, the records stay here)
  * participants { id, name, nameKey, createdAt, updatedAt }            (owners; shared across events)
  * entries      { id, eventId, participantId, entryNumber, entryName, address, status: ACTIVE|WITHDRAWN, createdAt, updatedAt }
- * legbands     { id, eventId, entryId, slot: 1..cocksPerEntry, number: '001', status, matchId, statusReason, createdAt, updatedAt }
+ * legbands     (one per bird) { id, eventId, entryId, slot: 1..cocksPerEntry, type: COCK|STAG|BULLSTAG (missing = COCK),
+ *                wingband ('005', stag / bullstag only), weight (grams or null),
+ *                number (legband '001'; null until the legband is put on after registration): '001', status, matchId, statusReason, createdAt, updatedAt }
  * matches      { id, eventId, fightNumber, sequence, redLegbandId, blueLegbandId, status, result, redPoints,
  *                bluePoints, idempotencyKey, confirmedBy, confirmedAt, cancelledBy, cancelledAt, cancelReason,
  *                completedBy, completedAt, createdAt, updatedAt }

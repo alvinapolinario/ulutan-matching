@@ -141,6 +141,16 @@ tr.is-cancelled td.actions { text-decoration: none; }
 
 .lb-input { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 1.5rem !important; font-weight: 800; letter-spacing: .08em; text-align: center; }
 .lb-info { min-height: 1.2rem; margin-top: .15rem; }
+/* Bird types */
+.badge.bird-cock { background: #343a40; }
+.badge.bird-stag { background: #0d6efd; }
+.badge.bird-bullstag { background: #6f42c1; }
+/* Registration: one compact row per bird (type · band · weight) */
+.bird-row { margin-top: .15rem; }
+.bird-row .lb-input { font-size: 1.05rem !important; letter-spacing: .04em; padding-top: .2rem; padding-bottom: .2rem; }
+.bird-row .lb-input::placeholder, .bird-row .bird-weight::placeholder { font-family: inherit; font-weight: 400; letter-spacing: 0; font-size: .85rem; }
+.bird-row .bird-weight { text-align: right; }
+.bird-row .lb-info:empty { min-height: 0; margin: 0; }
 
 /* ---------- Gamecocks list ---------- */
 .gc-table { border-color: #111; }

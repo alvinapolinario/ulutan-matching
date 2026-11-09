@@ -31,7 +31,7 @@ test('gamecock list: one row per legband with owner, status and opponent', async
   assert.equal(a.fight.fightNumber, 7);
   assert.equal(a.fight.corner, 'MERON');
   assert.equal(a.fight.outcome, 'LOSE');
-  assert.deepEqual(a.fight.opponent, { legband: '201', slot: 1, entryNumber: 2, entryName: 'Blue Storm', owner: 'Joel' });
+  assert.deepEqual(a.fight.opponent, { legband: '201', weight: null, slot: 1, entryNumber: 2, entryName: 'Blue Storm', owner: 'Joel' });
   assert.deepEqual([by['101'].slot, by['102'].slot], [1, 2], 'a two-chicken entry shows Entry #1 and Entry #2');
   assert.equal(by['201'].fight.outcome, 'WIN');
   assert.equal(by['201'].fight.corner, 'WALA');

@@ -11,7 +11,7 @@ const { createEventService } = require('./services/events');
 const { createRegistrationService } = require('./services/registration');
 const { createMatchService } = require('./services/matches');
 const { createReportService } = require('./services/reports');
-const { AppError } = require('./lib/common');
+const { AppError, allowedTypes, weightRules } = require('./lib/common');
 
 /**
  * Build the whole application. Returns { app, server, io, store, services }.
@@ -54,6 +54,9 @@ function createApp({ dataDir = path.join(__dirname, '..', 'data'), dbFile, backu
   // link carries ?v=<server start time>, so an update is never mixed with an old cached file.
   const assetVersion = Date.now().toString(36);
   app.locals.v = assetVersion;
+  // Event rules for the page templates (types of bird allowed, weight rules on/off).
+  app.locals.allowedTypes = allowedTypes;
+  app.locals.weightRules = weightRules;
   app.use('/static', express.static(path.join(root, 'public'), { maxAge: 0 }));
   app.use('/vendor/bootstrap', express.static(path.join(root, 'node_modules', 'bootstrap', 'dist'), { maxAge: '7d' }));
   app.use('/vendor/bootstrap-icons', express.static(path.join(root, 'node_modules', 'bootstrap-icons', 'font'), { maxAge: '7d' }));

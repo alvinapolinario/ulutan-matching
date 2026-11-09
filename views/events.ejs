@@ -29,19 +29,47 @@
         <div class="col-6"><label class="form-label">Date</label><input class="form-control" type="date" name="date" required></div>
         <div class="col-6"><label class="form-label">Venue</label><input class="form-control" name="venue" maxlength="160"></div>
       </div>
+      <div class="row g-2 mb-2">
+        <div class="col-6"><label class="form-label">Event type</label>
+          <select class="form-select" name="eventType">
+            <option value="DERBY">Derby (3+ birds)</option>
+            <option value="HACKFIGHT">Hackfight</option>
+          </select></div>
+        <div class="col-6"><label class="form-label">Birds per entry</label>
+          <select class="form-select" name="cocksPerEntry">
+            <option value="2">2 birds</option>
+            <option value="3">3 birds</option>
+            <option value="4">4 birds</option>
+            <option value="5">5 birds</option>
+          </select></div>
+      </div>
+      <div class="form-text mb-2" id="perEntryHelp">One legband and one score box per bird. Can be raised any time; it cannot go below what an entry already has.</div>
       <div class="mb-2"><label class="form-label">Legband numbers</label>
         <select class="form-select" name="legbandMode">
-          <option value="MANUAL">Typed in — pre-numbered bands from management</option>
+          <option value="MANUAL">Typed in — pre-numbered bands (can be added later)</option>
           <option value="AUTO">Automatic — 001, 002, 003… issued by the system</option>
         </select></div>
-      <div class="mb-2"><label class="form-label">Cocks per entry</label>
-        <select class="form-select" name="cocksPerEntry">
-          <option value="2">2 cocks — 2 legbands, 2 score boxes</option>
-          <option value="3">3 cocks — 3 legbands, 3 score boxes</option>
-          <option value="4">4 cocks — 4 legbands, 4 score boxes</option>
-          <option value="5">5 cocks — 5 legbands, 5 score boxes</option>
-        </select>
-        <div class="form-text">Can be raised any time; it cannot go below what an entry already has.</div></div>
+      <fieldset class="border rounded p-2 mb-2">
+        <legend class="form-label float-none w-auto px-1 mb-0 fs-6">Types of bird allowed</legend>
+        <div class="d-flex gap-4">
+          <div class="form-check"><input class="form-check-input" type="checkbox" name="allowCOCK" id="allowCOCK" value="COCK"><label class="form-check-label" for="allowCOCK">Cock</label></div>
+          <div class="form-check"><input class="form-check-input" type="checkbox" name="allowSTAG" id="allowSTAG" value="STAG"><label class="form-check-label" for="allowSTAG">Stag</label></div>
+          <div class="form-check"><input class="form-check-input" type="checkbox" name="allowBULLSTAG" id="allowBULLSTAG" value="BULLSTAG"><label class="form-check-label" for="allowBULLSTAG">Bullstag</label></div>
+        </div>
+        <div class="form-text">Registration offers only these types. Stags and bullstags need a wingband; each type fights its own type.</div>
+      </fieldset>
+      <fieldset class="border rounded p-2 mb-2">
+        <div class="form-check form-switch mb-1">
+          <input class="form-check-input" type="checkbox" role="switch" name="weightEnabled" id="weightEnabled">
+          <label class="form-check-label fw-semibold" for="weightEnabled">Weight rules for cocks (tolerance, min / max weight)</label>
+        </div>
+        <div class="row g-2" id="weightFields">
+          <div class="col-4"><label class="form-label">Tolerance (± g)</label><input class="form-control" type="number" min="0" max="2000" name="weightTolerance" placeholder="e.g. 35"></div>
+          <div class="col-4"><label class="form-label">Min weight (g)</label><input class="form-control" type="number" min="0" max="20000" name="minWeight" placeholder="none"></div>
+          <div class="col-4"><label class="form-label">Max weight (g)</label><input class="form-control" type="number" min="0" max="20000" name="maxWeight" placeholder="none"></div>
+        </div>
+        <div class="form-text" id="weightHelp"></div>
+      </fieldset>
       <div class="mb-2"><label class="form-label">Fight number</label>
         <select class="form-select" name="fightNumberMode">
           <option value="DRAW">Bunot (raffle) — operator types the drawn number</option>

@@ -17,6 +17,46 @@
     if (!/^\d{1,6}$/.test(s) || parseInt(s, 10) <= 0) return null;
     return String(parseInt(s, 10)).padStart(App.width, '0');
   };
+  /**
+   * What an operator typed to find a bird: "7" -> "007" (legband), "w7" / "WB 7" -> "W007" (wingband),
+   * "l7" / "LB7" -> "L007" (legband). Returns null if it is not a band number.
+   */
+  App.normBand = (v) => {
+    const m = /^(LB|L|WB|W)?[\s-]*(\d{1,6})$/.exec(String(v || '').trim().toUpperCase());
+    if (!m || parseInt(m[2], 10) <= 0) return null;
+    const n = String(parseInt(m[2], 10)).padStart(App.width, '0');
+    return m[1] ? m[1][0] + n : n;
+  };
+  /** Keep only what a band can contain while typing: an optional L/W prefix and digits. */
+  App.cleanBandInput = (v) => {
+    const s = String(v || '').toUpperCase().replace(/[^LWB0-9]/g, '');
+    const m = /^([LW]B?)?(\d*)/.exec(s);
+    return (m[1] || '') + m[2];
+  };
+  App.eventType = (body.dataset.eventType || 'HACKFIGHT').toUpperCase();      // DERBY | HACKFIGHT
+  const num = (v) => (v === '' || v == null ? null : Number(v));
+  // Weight rules for cocks (on / off) and the event's allowed types of bird.
+  App.weightRulesOn = body.dataset.weightRules === 'on';
+  App.weightTolerance = App.weightRulesOn ? num(body.dataset.weightTolerance) : null;
+  App.minWeight = App.weightRulesOn ? num(body.dataset.minWeight) : null;
+  App.maxWeight = App.weightRulesOn ? num(body.dataset.maxWeight) : null;
+  App.allowedTypes = (body.dataset.allowedTypes || 'COCK,STAG,BULLSTAG').split(',');
+  /** Same parsing as the server: grams ("2105", "2,105") or kilograms ("2.105"). null = blank, NaN = invalid. */
+  App.parseWeight = (v) => {
+    const s = String(v == null ? '' : v).trim().toLowerCase().replace(/\s+/g, '');
+    if (!s) return null;
+    const m = /^(\d{1,2}(?:\.\d{1,3})?)kg$|^(\d{1,2}\.\d{1,3})$|^(\d{1,3}(?:,\d{3})|\d{1,5})g?$/.exec(s);
+    if (!m) return NaN;
+    const g = m[1] || m[2] ? Math.round(parseFloat(m[1] || m[2]) * 1000) : parseInt(m[3].replace(',', ''), 10);
+    return g >= 1 && g <= 20000 ? g : NaN;
+  };
+  App.grams = (g) => (g == null ? '' : `${Number(g).toLocaleString('en-US')} g`);
+  App.BIRD_LABEL = { COCK: 'Cock', STAG: 'Stag', BULLSTAG: 'Bullstag' };
+  App.needsWingband = (type) => type === 'STAG' || type === 'BULLSTAG';
+  /** Legband number of a bird ('' until its legband is put on). */
+  App.bandLabel = (lb) => (!lb ? '' : lb.number || '');
+  /** Small coloured label for a bird type. */
+  App.typeBadge = (type) => `<span class="badge bird-${String(type || 'COCK').toLowerCase()}">${App.BIRD_LABEL[type] || 'Cock'}</span>`;
   App.uuid = () => (crypto.randomUUID ? crypto.randomUUID() : 'k' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12));
 
   App.api = async function (method, url, data) {

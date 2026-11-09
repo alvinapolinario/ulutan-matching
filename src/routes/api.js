@@ -39,9 +39,11 @@ module.exports = function apiRoutes(services) {
   r.get('/events/:eventId/entries/:entryId', requireRole(...STAFF), (req, res) => res.json(registration.getEntry(req.event.id, req.params.entryId)));
   r.post('/events/:eventId/entries', requireRole(...STAFF), (req, res) => res.status(201).json(registration.register(req.event.id, req.body, me(req).id)));
   r.patch('/events/:eventId/entries/:entryId', requireRole(...STAFF), (req, res) => res.json(registration.updateEntry(req.event.id, req.params.entryId, req.body, me(req))));
-  r.post('/events/:eventId/entries/:entryId/legbands', requireRole(...STAFF), (req, res) => res.status(201).json(registration.addLegband(req.event.id, req.params.entryId, me(req).id, req.body && req.body.legband)));
+  r.post('/events/:eventId/entries/:entryId/legbands', requireRole(...STAFF), (req, res) => res.status(201).json(registration.addLegband(req.event.id, req.params.entryId, me(req).id, req.body && req.body.legband, { type: req.body && req.body.type, wingband: req.body && req.body.wingband, weight: req.body && req.body.weight })));
+  r.get('/events/:eventId/wingbands/:number', requireRole(...STAFF), (req, res) => res.json(registration.lookupWingband(req.event.id, req.params.number)));
   r.post('/events/:eventId/entries/:entryId/withdraw', requireRole('ADMIN'), (req, res) => res.json(registration.withdrawEntry(req.event.id, req.params.entryId, req.body.reason, me(req).id)));
   r.get('/events/:eventId/legbands', requireRole(...STAFF), (req, res) => res.json(registration.listLegbands(req.event.id, req.query)));
+  r.get('/events/:eventId/legbands/:number/opponents', requireRole(...STAFF), (req, res) => res.json(registration.opponents(req.event.id, req.params.number, req.query)));
   r.get('/events/:eventId/legbands/:number', requireRole(...STAFF), (req, res) => res.json(registration.lookupLegband(req.event.id, req.params.number)));
   r.post('/events/:eventId/legbands/:number/withdraw', requireRole('ADMIN'), (req, res) => res.json(registration.withdrawLegband(req.event.id, req.params.number, req.body.reason, me(req).id)));
 

@@ -34,10 +34,17 @@ Want sample data to try it? Stop the server and run `npm run demo` (creates a de
 if there are no users yet it also creates `admin/admin123`, `operator/operator123`, `tv/tv1234` — change these).
 
 ### First setup checklist
-1. **Events → New event**: name, date, venue, first fight number, max legbands (default 500), and
-   **Cocks per entry** (2, 3, 4 or 5 — default 2). This sets how many legband boxes Registration shows and how many
-   score boxes the TV side screens, TV Control and the Entry Scores report show. It can be raised later, but not
-   lowered below what an entry already has.
+1. **Events → New event**: name, date, venue, first fight number, max legbands (default 500), and:
+   - **Event type**: *Derby* (at least 3 birds per entry) or *Hackfight* (original rules: 2 per entry unless changed).
+   - **Birds per entry**: derby 3–5, hackfight 2–5. This sets how many bird rows Registration shows and how many
+     score boxes the TV side screens, TV Control and the Entry Scores report show. It can be raised later, but not
+     lowered below what an entry already has.
+   - **Types of bird allowed**: tick *Cock*, *Stag* and/or *Bullstag*. Registration offers only these types. A type
+     cannot be unticked while birds of that type are registered.
+   - **Weight rules for cocks** (switch on/off): when on, enter the **Tolerance (± g)** — the largest weight
+     difference allowed between two cocks — and optionally a **Min / Max weight**. Every cock must then be weighed
+     at registration and be inside the min / max. When off, weights are optional and not checked (the numbers are
+     kept for when it is switched on again).
 2. Change the event status: **REGISTRATION OPEN** → (later) **MATCHING OPEN** → **ACTIVE** → **COMPLETED**.
 3. **Users**: add an *Operator* account for each station and a *Display* account for the TVs.
 
@@ -344,7 +351,19 @@ Everything is in the `data/` folder:
 
 - Legbands: auto-numbered per event, `001`…max (default 500), stored as text so `001` stays `001`.
   Numbers can repeat across different events.
-- Entry: one legband slot per cock — the event's *Cocks per entry* (2–5, default 2); may be saved with fewer and completed later.
+- Birds: each bird has a **type of bird** — *Cock*, *Stag* or *Bullstag* — and a **legband** (the number used for
+  matching). The legband can be typed at registration or put on later with **+ Legband**; a bird cannot be matched
+  until it has one.
+  - **Cock**: only a **weight** (required when the event has a tolerance), no wingband. Cocks are matched by weight:
+    at most the event's tolerance apart.
+  - **Stag / Bullstag**: a **wingband** is required (unique in the event); weight is optional.
+  - Birds fight their own type only: cock vs cock, stag vs stag, bullstag vs bullstag.
+  - On Matching, type the legband number, or `W` and the wingband number (e.g. `W12`) to find a stag by its wingband.
+    The **Possible opponents** list shows free birds of the same type (cocks within the tolerance), closest weight first.
+  - Weights are typed in grams (`2105`) or kilograms (`2.105`).
+- Entry: one bird slot per *Birds per entry* (derby 3–5, hackfight 2–5); may be saved with fewer and completed later.
+  **Derby:** an entry can fight only once **all** its birds are registered with their legbands (Matching says how many
+  are missing, and incomplete entries are left out of *Possible opponents*). **Hackfight:** incomplete entries may fight.
 - One fight per legband (no rematches). A cancelled match makes its legbands unusable.
 - Different entries of the same owner may be matched against each other; only two chickens of the *same entry* are refused.
 - Fight numbers: *Bunot* mode — the drawn number is typed and checked inside the transaction (unique per event, never reused, cancelled ones included); *Automatic* mode — a server counter. Running order follows fight number in Bunot mode.

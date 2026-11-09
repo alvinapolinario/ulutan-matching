@@ -36,9 +36,15 @@
     infos[corner].className = 'corner-info' + (kind ? ' ' + kind : '');
     infos[corner].innerHTML = html;
   }
+  const typeBadge = (lb) => App.typeBadge(lb.type);
+  const weightText = (lb) => (lb.weight != null ? App.grams(lb.weight) : (lb.type === 'COCK' && App.weightTolerance != null ? '<span class="text-danger fw-semibold">not weighed</span>' : ''));
+  /** The legband number, sent with the confirm. */
+  const refOf = (lb) => lb.number;
   function infoHtml(lb) {
+    const w = weightText(lb);
     return `<div class="entry">#${lb.entry.entryNumber} · ${esc(lb.entry.entryName)}</div>
-      <div>${esc(lb.participant ? lb.participant.name : '')}${lb.entry.address ? ' · ' + esc(lb.entry.address) : ''} · Slot ${lb.slot} · <span class="badge text-bg-success">AVAILABLE</span></div>`;
+      <div>${esc(lb.participant ? lb.participant.name : '')}${lb.entry.address ? ' · ' + esc(lb.entry.address) : ''} · Slot ${lb.slot} · <span class="badge text-bg-success">AVAILABLE</span></div>
+      <div class="mt-1">${typeBadge(lb)} LB <b>${esc(lb.number)}</b>${lb.wingband ? ` · WB ${esc(lb.wingband)}` : ''}${w ? ' · ' + w : ''}</div>`;
   }
   function showError(corner, msg, focus = true) {
     setInfo(corner, 'bad', esc(msg));
@@ -49,10 +55,10 @@
   const inflight = { red: null, blue: null };
   /** Look up a corner's legband. Re-uses a lookup that is already running for the same number. */
   function lookup(corner, { focusOnError = true } = {}) {
-    const number = App.normLegband(inputs[corner].value);
-    if (!number) { showError(corner, 'Enter a legband number (digits only).'); return Promise.resolve(false); }
+    const number = App.normBand(inputs[corner].value);
+    if (!number) { showError(corner, 'Enter a legband number (digits), or W and the wingband number.'); return Promise.resolve(false); }
     inputs[corner].value = number;
-    if (valid[corner] && valid[corner].number === number) return Promise.resolve(true);
+    if (valid[corner] && valid[corner].typed === number) return Promise.resolve(true);
     if (inflight[corner] && inflight[corner].number === number) return inflight[corner].promise;
     const promise = doLookup(corner, number, focusOnError).finally(() => { if (inflight[corner] && inflight[corner].promise === promise) inflight[corner] = null; });
     inflight[corner] = { number, promise };
@@ -64,8 +70,9 @@
       const lb = await api('GET', ev(`/legbands/${number}`));
       if (inputs[corner].value !== number) return false; // operator changed the number meanwhile
       if (!lb.available) { showError(corner, lb.unavailableReason || `${corner === 'red' ? 'Red' : 'Blue'} Corner legband is unavailable.`, focusOnError); return false; }
-      valid[corner] = lb;
+      valid[corner] = { ...lb, typed: number };
       setInfo(corner, 'ok', infoHtml(lb));
+      if (corner === 'red') loadOpponents(lb);
       return true;
     } catch (e) { showError(corner, e.message, focusOnError); return false; }
   }
@@ -113,7 +120,7 @@
     if (e.key !== 'Enter') return;
     e.preventDefault();
     if (e.repeat) return;
-    if (!App.normLegband(inputs.red.value)) { showError('red', 'Enter a legband number (digits only).'); return; }
+    if (!App.normBand(inputs.red.value)) { showError('red', 'Enter a legband number (digits), or W and the wingband number.'); return; }
     const check = lookup('red', { focusOnError: false });
     inputs.blue.focus(); inputs.blue.select();
     check.then((ok) => { if (!ok && !pending) { inputs.red.focus(); inputs.red.select(); } });
@@ -125,7 +132,7 @@
     enterHeld = true;
     // DRAW mode: jump to the fight-number field at once so fast typing lands there;
     // the pair is checked in the background and the cursor returns to Blue if it fails.
-    if (DRAW && !fightInput.value.trim() && App.normLegband(inputs.blue.value)) { fightInput.focus(); }
+    if (DRAW && !fightInput.value.trim() && App.normBand(inputs.blue.value)) { fightInput.focus(); }
     review();
   });
   if (DRAW) {
@@ -145,8 +152,11 @@
   document.addEventListener('keyup', (e) => { if (e.key === 'Enter') { enterHeld = false; tryArm(); } });
   for (const corner of ['red', 'blue']) {
     inputs[corner].addEventListener('input', () => {
-      inputs[corner].value = inputs[corner].value.replace(/\D/g, '');
-      if (valid[corner] && valid[corner].number !== inputs[corner].value) { valid[corner] = null; setInfo(corner, '', '<span class="text-muted">Press Enter to check.</span>'); }
+      inputs[corner].value = App.cleanBandInput(inputs[corner].value);
+      if (valid[corner] && valid[corner].typed !== inputs[corner].value) {
+        valid[corner] = null; setInfo(corner, '', '<span class="text-muted">Press Enter to check.</span>');
+        if (corner === 'red') hideOpponents();
+      }
     });
   }
   $('reviewBtn').addEventListener('click', review);
@@ -157,14 +167,50 @@
     if (DRAW) { fightInput.value = ''; fightInfo.className = 'corner-info'; fightInfo.innerHTML = FIGHT_HINT; }
     setInfo('red', '', '<span class="text-muted">Type the Red legband and press Enter.</span>');
     setInfo('blue', '', '<span class="text-muted">Then type the Blue legband and press Enter.</span>');
+    hideOpponents();
     inputs.red.focus();
   }
 
+  // ---------- Possible opponents (same type; cocks within the weight tolerance, closest first) ----------
+  let oppToken = 0;
+  function hideOpponents() { oppToken += 1; $('oppCard').classList.add('d-none'); }
+  async function loadOpponents(lb) {
+    const token = (oppToken += 1);
+    try {
+      const res = await api('GET', ev(`/legbands/${refOf(lb)}/opponents`));
+      if (token !== oppToken) return;
+      $('oppFor').innerHTML = `${typeBadge(lb)} <b>${esc(lb.number)}</b>${lb.weight != null ? ` (${App.grams(lb.weight)})` : ''}`;
+      $('oppNote').textContent = res.matchByWeight ? `within ±${res.weightTolerance} g, closest first` : `${App.BIRD_LABEL[lb.type].toLowerCase()}s only`;
+      const rows = res.candidates;
+      $('oppRows').innerHTML = res.needsWeight
+        ? '<tr><td colspan="6" class="text-danger">Weigh this cock first (Registration → Edit).</td></tr>'
+        : rows.length ? rows.map((o) => `<tr>
+            <td class="lb fw-semibold">${esc(o.number)}${o.wingband ? `<div class="small text-muted fw-normal">WB ${esc(o.wingband)}</div>` : ''}</td><td>${o.weight != null ? App.grams(o.weight) : '—'}</td>
+            <td>${o.diff != null ? `${o.diff} g` : ''}</td><td>#${o.entry.entryNumber} ${esc(o.entry.entryName)}</td>
+            <td>${esc(o.participant ? o.participant.name : '')}</td>
+            <td class="text-end"><button type="button" class="btn btn-sm btn-outline-primary" data-pick="${esc(refOf(o))}">Use as Blue</button></td></tr>`).join('')
+          : '<tr><td colspan="6" class="text-muted">No available opponent right now.</td></tr>';
+      $('oppCard').classList.remove('d-none');
+    } catch (_) { hideOpponents(); }
+  }
+  $('oppRows').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-pick]');
+    if (!b || pending) return;
+    inputs.blue.value = b.dataset.pick; // the opponent's legband number
+    valid.blue = null;
+    enterHeld = false;
+    review();
+  });
+
   // ---------- Confirmation dialog ----------
   function side(lb, label) {
+    const w = weightText(lb);
     return `<div class="corner-label">${label}</div>
       <div class="big-lb">${esc(lb.number)}</div>
       <dl>
+        <dt>Bird</dt><dd>${typeBadge(lb)}</dd>
+        ${lb.wingband ? `<dt>Wingband</dt><dd class="fw-bold">WB ${esc(lb.wingband)}</dd>` : ''}
+        ${w ? `<dt>Weight</dt><dd class="fw-bold">${w}</dd>` : ''}
         <dt>Entry name</dt><dd>${esc(lb.entry.entryName)}</dd>
         <dt>Address</dt><dd>${esc(lb.entry.address || '—')}</dd>
         <dt>Entry no.</dt><dd>${lb.entry.entryNumber}</dd>
@@ -174,7 +220,12 @@
       </dl>`;
   }
   function openDialog(res) {
-    pending = { red: res.red.number, blue: res.blue.number, fightNumber: DRAW ? res.fightNumber : undefined, key: App.uuid() };
+    pending = { red: refOf(res.red), blue: refOf(res.blue), fightNumber: DRAW ? res.fightNumber : undefined, key: App.uuid() };
+    const cw = $('confirmWeight');
+    if (res.weightDiff != null) {
+      cw.textContent = `Weight difference: ${res.weightDiff} g${res.weightTolerance != null ? ` (limit ±${res.weightTolerance} g)` : ''}`;
+      cw.classList.remove('d-none');
+    } else cw.classList.add('d-none');
     confirmed = false;
     $('confirmRed').innerHTML = side(res.red, 'RED CORNER');
     $('confirmBlue').innerHTML = side(res.blue, 'BLUE CORNER');

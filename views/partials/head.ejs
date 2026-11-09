@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="/vendor/bootstrap-icons/bootstrap-icons.css">
   <link rel="stylesheet" href="/static/css/app.css?v=<%= locals.v || '' %>">
 </head>
-<body data-event-id="<%= event ? event.id : '' %>" data-role="<%= user ? user.role : '' %>" data-legband-width="<%= event ? event.legbandWidth : 3 %>" data-legband-mode="<%= event ? (event.legbandMode || 'MANUAL') : 'MANUAL' %>" data-cocks-per-entry="<%= event ? (event.cocksPerEntry || 2) : 2 %>" data-fight-mode="<%= event ? (event.fightNumberMode || 'DRAW') : 'DRAW' %>">
+<body data-event-id="<%= event ? event.id : '' %>" data-role="<%= user ? user.role : '' %>" data-legband-width="<%= event ? event.legbandWidth : 3 %>" data-legband-mode="<%= event ? (event.legbandMode || 'MANUAL') : 'MANUAL' %>" data-cocks-per-entry="<%= event ? (event.cocksPerEntry || 2) : 2 %>" data-event-type="<%= event && event.eventType === 'DERBY' ? 'DERBY' : 'HACKFIGHT' %>"<% const wr = event ? weightRules(event) : null; %> data-weight-tolerance="<%= wr && wr.tolerance != null ? wr.tolerance : '' %>" data-weight-rules="<%= wr ? 'on' : 'off' %>" data-min-weight="<%= wr && wr.min != null ? wr.min : '' %>" data-max-weight="<%= wr && wr.max != null ? wr.max : '' %>" data-allowed-types="<%= event ? allowedTypes(event).join(',') : 'COCK,STAG,BULLSTAG' %>" data-fight-mode="<%= event ? (event.fightNumberMode || 'DRAW') : 'DRAW' %>">
 <% const nav = [
   ['/', 'Dashboard', 'bi-speedometer2'],
   ['/registration', 'Registration', 'bi-person-plus'],
