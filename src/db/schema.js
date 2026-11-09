@@ -4,12 +4,12 @@
  *
  * users        { id, username, passwordHash, role: ADMIN|OPERATOR|DISPLAY, status: ACTIVE|DISABLED, createdAt }
  * events       { id, name, date, venue, status, fightNumberMode: DRAW|AUTO, legbandMode: MANUAL|AUTO, startingFightNumber, nextFightNumber, nextEntryNumber,
- *                nextLegbandNumber, maxLegbands, legbandWidth, stateVersion,
+ *                nextLegbandNumber, maxLegbands, cocksPerEntry (2-5; missing = 2), legbandWidth, stateVersion,
  *                display: { currentMatchId, published, upcomingCount }, createdBy, createdAt, updatedAt,
  *                archivedAt, archiveFile }   (set when status becomes ARCHIVED; the file is a copy, the records stay here)
  * participants { id, name, nameKey, createdAt, updatedAt }            (owners; shared across events)
  * entries      { id, eventId, participantId, entryNumber, entryName, address, status: ACTIVE|WITHDRAWN, createdAt, updatedAt }
- * legbands     { id, eventId, entryId, slot: 1|2, number: '001', status, matchId, statusReason, createdAt, updatedAt }
+ * legbands     { id, eventId, entryId, slot: 1..cocksPerEntry, number: '001', status, matchId, statusReason, createdAt, updatedAt }
  * matches      { id, eventId, fightNumber, sequence, redLegbandId, blueLegbandId, status, result, redPoints,
  *                bluePoints, idempotencyKey, confirmedBy, confirmedAt, cancelledBy, cancelledAt, cancelReason,
  *                completedBy, completedAt, createdAt, updatedAt }

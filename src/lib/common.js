@@ -28,6 +28,14 @@ const CAN_REGISTER = ['REGISTRATION_OPEN', 'MATCHING_OPEN', 'ACTIVE'];
 const CAN_MATCH = ['MATCHING_OPEN', 'ACTIVE'];
 const CAN_RUN_FIGHTS = ['MATCHING_OPEN', 'ACTIVE'];
 
+/** Chickens (legbands / score boxes) per entry. Set per event; events made before the setting existed use 2. */
+const MIN_PER_ENTRY = 2;
+const MAX_PER_ENTRY = 5;
+const perEntry = (ev) => {
+  const n = Number(ev && ev.cocksPerEntry);
+  return Number.isInteger(n) && n >= MIN_PER_ENTRY && n <= MAX_PER_ENTRY ? n : 2;
+};
+
 /**
  * Legband lifecycle
  *   AVAILABLE --confirm match--> MATCHED            (stays MATCHED after the fight: no rematches)
@@ -68,4 +76,5 @@ module.exports = {
   ROLES, EVENT_STATUSES, EVENT_TRANSITIONS, CAN_REGISTER, CAN_MATCH, CAN_RUN_FIGHTS,
   LEGBAND_STATUSES, MATCH_STATUSES, RESULTS,
   now, pad, nameKey, cleanText, points, normalizeLegband,
+  MIN_PER_ENTRY, MAX_PER_ENTRY, perEntry,
 };

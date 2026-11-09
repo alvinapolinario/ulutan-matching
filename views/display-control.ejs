@@ -104,8 +104,8 @@
       </div>
       <div class="table-responsive scores-scroll">
         <table class="table table-sm align-middle mb-0 scores-table">
-          <thead class="sticky-top"><tr><th>Entry</th><th colspan="2" class="text-center">Score</th></tr></thead>
-          <tbody id="scoreRows"><tr><td colspan="3" class="text-muted">Loading…</td></tr></tbody>
+          <thead class="sticky-top"><tr><th>Entry</th><th colspan="<%= event.cocksPerEntry || 2 %>" class="text-center" id="scoreHead">Score</th></tr></thead>
+          <tbody id="scoreRows"><tr><td colspan="<%= (event.cocksPerEntry || 2) + 1 %>" class="text-muted">Loading…</td></tr></tbody>
         </table>
       </div>
     </section>

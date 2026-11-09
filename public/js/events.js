@@ -20,7 +20,7 @@
     rows.innerHTML = events.map((e) => `<tr class="${e.status === 'ARCHIVED' ? 'text-muted' : ''}">
       <td class="fw-semibold">${esc(e.name)}</td><td>${esc(e.date)}</td><td>${esc(e.venue)}</td>
       <td><span class="badge text-bg-secondary">${esc(e.status.replace('_', ' '))}</span></td>
-      <td>${(e.legbandMode || 'MANUAL') === 'MANUAL' ? 'Typed' : 'Auto'}</td>
+      <td>${(e.legbandMode || 'MANUAL') === 'MANUAL' ? 'Typed' : 'Auto'} · ${e.cocksPerEntry || 2} per entry</td>
       <td>${(e.fightNumberMode || 'DRAW') === 'DRAW' ? 'Bunot' : 'Auto from ' + e.startingFightNumber}</td><td>${e.maxLegbands}</td><td>${e.legbandsIssued}</td>
       <td class="text-end">${TRANSITIONS[e.status].filter((s) => s !== 'ARCHIVED').map((s) => {
         const fwd = ORDER.indexOf(s) > ORDER.indexOf(e.status);
@@ -36,6 +36,7 @@
     if (ev) {
       form.name.value = ev.name; form.date.value = ev.date; form.venue.value = ev.venue || '';
       form.startingFightNumber.value = ev.startingFightNumber; form.maxLegbands.value = ev.maxLegbands; form.upcomingCount.value = ev.display.upcomingCount; form.fightNumberMode.value = ev.fightNumberMode || 'DRAW'; form.legbandMode.value = ev.legbandMode || 'MANUAL';
+      form.cocksPerEntry.value = String(ev.cocksPerEntry || 2);
     } else {
       form.date.value = new Date().toLocaleDateString('en-CA');
     }
@@ -53,6 +54,7 @@
       name: form.name.value, date: form.date.value, venue: form.venue.value,
       fightNumberMode: form.fightNumberMode.value,
       legbandMode: form.legbandMode.value,
+      cocksPerEntry: Number(form.cocksPerEntry.value),
       startingFightNumber: Number(form.startingFightNumber.value), maxLegbands: Number(form.maxLegbands.value), upcomingCount: Number(form.upcomingCount.value),
     };
     try {

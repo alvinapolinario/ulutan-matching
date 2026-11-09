@@ -126,7 +126,8 @@ test('registration: legband numbers are scoped to the event', async (t) => {
   const ctx = await setup({ status: 'REGISTRATION_OPEN' });
   t.after(ctx.stop);
   const admin = await login(ctx, 'admin', 'admin123');
-  const ev2 = (await admin.post('/api/events', { name: 'Second', date: '2026-10-18' })).body;
+  // New events default to typed (MANUAL) legbands; this test checks the automatic numbering per event.
+  const ev2 = (await admin.post('/api/events', { name: 'Second', date: '2026-10-18', legbandMode: 'AUTO' })).body;
   await admin.post(`/api/events/${ev2.id}/status`, { status: 'REGISTRATION_OPEN' });
   const a = await admin.post(`/api/events/${ctx.eventId}/entries`, { participantName: 'A' });
   const b = await admin.post(`/api/events/${ev2.id}/entries`, { participantName: 'B' });

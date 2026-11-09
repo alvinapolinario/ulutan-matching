@@ -1,5 +1,5 @@
 'use strict';
-const { notFound, pad, points } = require('../lib/common');
+const { notFound, pad, points, perEntry } = require('../lib/common');
 
 const RESULT_LABEL = { RED: 'Red wins (1-0)', BLUE: 'Blue wins (0-1)', DRAW: 'Draw (½-½)' };
 
@@ -25,11 +25,16 @@ function createReportService(store, { registration, matches }) {
     registration: {
       title: 'Registration Master List',
       build(id) {
-        const rows = registration.listEntries(id).map((e) => ({
+        const n = perEntry(store.data.events.find((e) => e.id === id));
+        const list = registration.listEntries(id);
+        const cols = Math.max(n, ...list.map((e) => e.legbands.length));
+        const rows = list.map((e) => ({
           entryNumber: e.entryNumber, entryName: e.entryName, address: e.address, participant: e.participantName,
-          lb1: e.legband1 ? e.legband1.number : '', lb2: e.legband2 ? e.legband2.number : '', status: e.displayStatus,
+          ...Object.fromEntries(Array.from({ length: cols }, (_, i) => [`lb${i + 1}`, e.legbands[i] ? e.legbands[i].number : ''])),
+          status: e.displayStatus,
         }));
-        return { columns: [{ key: 'entryNumber', label: 'Entry No.' }, { key: 'entryName', label: 'Entry Name' }, { key: 'address', label: 'Address' }, { key: 'participant', label: 'Participant' }, { key: 'lb1', label: 'Legband 1', legband: true }, { key: 'lb2', label: 'Legband 2', legband: true }, { key: 'status', label: 'Status' }], rows };
+        const lbCols = Array.from({ length: cols }, (_, i) => ({ key: `lb${i + 1}`, label: `Legband ${i + 1}`, legband: true }));
+        return { columns: [{ key: 'entryNumber', label: 'Entry No.' }, { key: 'entryName', label: 'Entry Name' }, { key: 'address', label: 'Address' }, { key: 'participant', label: 'Participant' }, ...lbCols, { key: 'status', label: 'Status' }], rows };
       },
     },
     legbands: {
@@ -83,8 +88,14 @@ function createReportService(store, { registration, matches }) {
     scores: {
       title: 'Entry Scores',
       build(id) {
-        const rows = matches.entryScores(id).map((e) => ({ entry: `#${e.entryNumber} ${e.entryName}`, participant: e.participantName, s1: points(e.scores[0].points), s2: points(e.scores[1].points) }));
-        return { columns: [{ key: 'entry', label: 'Entry' }, { key: 'participant', label: 'Participant' }, { key: 's1', label: 'Score 1' }, { key: 's2', label: 'Score 2' }], rows };
+        const list = matches.entryScores(id);
+        const cols = Math.max(perEntry(store.data.events.find((e) => e.id === id)), ...list.map((e) => e.scores.length));
+        const rows = list.map((e) => ({
+          entry: `#${e.entryNumber} ${e.entryName}`, participant: e.participantName,
+          ...Object.fromEntries(Array.from({ length: cols }, (_, i) => [`s${i + 1}`, e.scores[i] ? points(e.scores[i].points) : ''])),
+        }));
+        const scoreCols = Array.from({ length: cols }, (_, i) => ({ key: `s${i + 1}`, label: `Score ${i + 1}` }));
+        return { columns: [{ key: 'entry', label: 'Entry' }, { key: 'participant', label: 'Participant' }, ...scoreCols], rows };
       },
     },
     standings: {

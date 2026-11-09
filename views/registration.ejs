@@ -19,27 +19,27 @@
       <input class="form-control mb-1" id="address" name="address" maxlength="120" placeholder="e.g. Brgy. Poblacion, Iligan City" list="addressList">
       <datalist id="addressList"></datalist>
       <% const manualLb = (event.legbandMode || 'MANUAL') === 'MANUAL'; %>
+      <% const perEntry = event.cocksPerEntry || 2; const lbCol = perEntry === 2 ? 'col-6' : 'col-4'; %>
       <% if (manualLb) { %>
       <div class="form-text mb-2">Shown under the entry name on the TV.</div>
       <div class="row g-2">
-        <div class="col-6">
-          <label class="form-label" for="legband1">Legband 1</label>
-          <input class="form-control lb-input" id="legband1" name="legband1" inputmode="numeric" maxlength="6" placeholder="optional" aria-describedby="lb1Info">
-          <div class="small lb-info" id="lb1Info"></div>
+        <% for (let i = 1; i <= perEntry; i++) { %>
+        <div class="<%= lbCol %>">
+          <label class="form-label" for="legband<%= i %>">Legband <%= i %></label>
+          <input class="form-control lb-input" id="legband<%= i %>" name="legband<%= i %>" data-slot="<%= i %>" inputmode="numeric" maxlength="6" placeholder="optional" aria-describedby="lb<%= i %>Info">
+          <div class="small lb-info" id="lb<%= i %>Info"></div>
         </div>
-        <div class="col-6">
-          <label class="form-label" for="legband2">Legband 2</label>
-          <input class="form-control lb-input" id="legband2" name="legband2" inputmode="numeric" maxlength="6" placeholder="optional" aria-describedby="lb2Info">
-          <div class="small lb-info" id="lb2Info"></div>
-        </div>
+        <% } %>
       </div>
-      <div class="form-text mb-3">Type the numbers printed on the bands from management, or leave them blank and add them later with the <b>Legband</b> button. <kbd>Enter</kbd> on Legband 2 (or on an empty Legband 1) saves.</div>
+      <div class="form-text mb-3">This event has <b><%= perEntry %> cocks per entry</b>. Type the numbers printed on the bands from management, or leave them blank and add them later with the <b>Legband</b> button. <kbd>Enter</kbd> on Legband <%= perEntry %> (or on an empty legband box) saves.</div>
       <% } else { %>
       <div class="form-text mb-2">Shown under the entry name on the TV. Press <kbd>Enter</kbd> to save.</div>
       <label class="form-label" for="legbandCount">Legbands to issue now</label>
       <select class="form-select mb-3" id="legbandCount" name="legbandCount">
-        <option value="2">2 — complete entry</option>
-        <option value="1">1 — incomplete, add the 2nd later</option>
+        <option value="<%= perEntry %>"><%= perEntry %> — complete entry</option>
+        <% for (let i = perEntry - 1; i >= 1; i--) { %>
+        <option value="<%= i %>"><%= i %> — incomplete, add the rest later</option>
+        <% } %>
       </select>
       <div class="d-flex align-items-center justify-content-between bg-light rounded p-2 mb-3">
         <span class="text-muted small">Next legband number(s)</span>
@@ -67,8 +67,8 @@
       </div>
       <div class="table-responsive" style="max-height:70vh">
         <table class="table table-sm table-hover mb-0">
-          <thead class="sticky-top bg-white"><tr><th>Entry No.</th><th>Entry Name</th><th>Participant</th><th>Legband 1</th><th>Legband 2</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
-          <tbody id="entryRows"><tr><td colspan="7" class="text-muted">Loading…</td></tr></tbody>
+          <thead class="sticky-top bg-white"><tr><th>Entry No.</th><th>Entry Name</th><th>Participant</th><% for (let i = 1; i <= perEntry; i++) { %><th>Legband <%= i %></th><% } %><th>Status</th><th class="text-end">Actions</th></tr></thead>
+          <tbody id="entryRows"><tr><td colspan="<%= 5 + perEntry %>" class="text-muted">Loading…</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -86,8 +86,9 @@
       <label class="form-label">Entry name</label><input class="form-control mb-2" name="entryName" required>
       <label class="form-label">Address</label><input class="form-control mb-2" name="address" maxlength="120">
       <div class="row g-2 mb-2">
-        <div class="col-6"><label class="form-label">Legband 1</label><input class="form-control lb" name="legband1" inputmode="numeric" maxlength="6"></div>
-        <div class="col-6"><label class="form-label">Legband 2</label><input class="form-control lb" name="legband2" inputmode="numeric" maxlength="6"></div>
+        <% for (let i = 1; i <= perEntry; i++) { %>
+        <div class="<%= lbCol %>"><label class="form-label">Legband <%= i %></label><input class="form-control lb" name="legband<%= i %>" inputmode="numeric" maxlength="6"></div>
+        <% } %>
       </div>
       <div id="reasonWrap" class="d-none"><label class="form-label">Reason for correction</label><input class="form-control" name="reason"></div>
       <p class="small text-muted mt-2 mb-0" id="editLegbands">A legband number can be corrected until it is used in a match.</p>

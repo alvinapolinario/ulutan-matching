@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { setup, login, tempDir } = require('./helpers');
 const { Store } = require('../src/db/store');
+const { SCHEMA_VERSION } = require('../src/db/schema');
 
 let k = 0;
 const key = () => `draw-key-${Date.now()}-${(k += 1)}`;
@@ -117,8 +118,10 @@ test('draw mode: event setting can switch to AUTO; old databases migrate to DRAW
   const file = path.join(dir, 'db.json');
   fs.writeFileSync(file, JSON.stringify({ schemaVersion: 1, counters: {}, users: [], events: [{ id: 1, name: 'Old' }], participants: [], entries: [], legbands: [], matches: [], auditLogs: [] }));
   const s = new Store(file, { backupIntervalMs: 0 });
-  assert.equal(s.data.schemaVersion, 2);
+  // Migrates all the way to the current version (v2 adds the draw mode, v3 keeps old events on AUTO legbands).
+  assert.equal(s.data.schemaVersion, SCHEMA_VERSION);
   assert.equal(s.data.events[0].fightNumberMode, 'DRAW');
+  assert.equal(s.data.events[0].legbandMode, 'AUTO');
   assert.ok(fs.readdirSync(path.join(dir, 'backups')).some((f) => f.includes('pre-migration-v1')));
   s.close();
 });

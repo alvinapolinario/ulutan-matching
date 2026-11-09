@@ -7,15 +7,17 @@
   <link rel="stylesheet" href="/static/css/tv-side.css?v=<%= locals.v || '' %>">
 </head>
 <body class="<%= side %>" data-event-id="<%= displayEvent ? displayEvent.id : '' %>" data-side="<%= side %>">
-<div id="stage" class="stage">
+<% const boxes = (displayEvent && displayEvent.cocksPerEntry) || 2; %>
+<div id="stage" class="stage boxes-<%= boxes %>">
   <div class="side-title"><%= side === 'meron' ? 'MERON' : 'WALA' %></div>
   <div class="side-entry" id="entryName">NO ACTIVE FIGHT</div>
   <div class="side-owner" id="entryOwner"></div>
   <div class="side-body" id="sideBody">
     <div class="side-addr" id="entryAddr"></div>
     <div class="side-scores" id="scores">
-      <div class="score-box" id="box1"><span class="score" id="score1"></span></div>
-      <div class="score-box" id="box2"><span class="score" id="score2"></span></div>
+      <% for (let i = 1; i <= boxes; i++) { %>
+      <div class="score-box" id="box<%= i %>"><span class="score" id="score<%= i %>"></span></div>
+      <% } %>
     </div>
     <div class="side-margin" aria-hidden="true"></div>
   </div>

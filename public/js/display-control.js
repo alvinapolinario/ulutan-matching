@@ -139,10 +139,13 @@
   function renderScores() {
     const q = $('scoreSearch').value.trim().toLowerCase();
     const rows = scores.filter((e) => !q || `${e.entryNumber} ${e.entryName} ${e.participantName}`.toLowerCase().includes(q));
+    // One score box per cock (the event's "cocks per entry", 2-5).
+    const boxes = Math.max(Number(document.body.dataset.cocksPerEntry) || 2, ...scores.map((e) => e.scores.length));
+    $('scoreHead').colSpan = boxes;
     $('scoreRows').innerHTML = rows.length ? rows.map((e) => `<tr class="${e.scores.some((x) => x.fighting) ? 'is-fighting' : ''}">
       <td><div class="fw-semibold">${esc(e.entryName)}</div><div class="small text-muted">#${e.entryNumber} · ${esc(e.participantName)}${e.address ? ' · ' + esc(e.address) : ''}</div></td>
-      ${scoreCell(e.scores[0])}${scoreCell(e.scores[1])}</tr>`).join('')
-      : '<tr><td colspan="3" class="text-muted">No entries.</td></tr>';
+      ${Array.from({ length: boxes }, (_, i) => scoreCell(e.scores[i] || { points: null })).join('')}</tr>`).join('')
+      : `<tr><td colspan="${boxes + 1}" class="text-muted">No entries.</td></tr>`;
   }
 
   function renderSettings() {

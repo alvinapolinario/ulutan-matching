@@ -97,3 +97,17 @@ body.wala { background: #1d4fb8; }
    and shrinks the font when the name would need a third line). */
 .side-entry.two-line { white-space: normal; text-overflow: clip; overflow-wrap: break-word; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1.04; }
 .side-entry.two-line.measure { display: block; -webkit-line-clamp: unset; }
+
+/* 3-5 cocks per entry: one box per cock. The right-hand margin box is dropped and the boxes
+   shrink so address + boxes still fit the 1920 px stage. */
+.stage.boxes-3 .side-margin, .stage.boxes-4 .side-margin, .stage.boxes-5 .side-margin { display: none; }
+.stage.boxes-3 .side-body { grid-template-columns: 1fr repeat(3, var(--box)); }
+.stage.boxes-4 { --box: 290px; }
+.stage.boxes-4 .side-body { grid-template-columns: 1fr repeat(4, var(--box)); }
+.stage.boxes-4 .score-box { height: 280px; }
+.stage.boxes-4 .score { font-size: 195px; }
+.stage.boxes-5 { --box: 250px; --gap: 30px; }
+.stage.boxes-5 .side-body { grid-template-columns: 1fr repeat(5, var(--box)); }
+.stage.boxes-5 .score-box { height: 250px; border-width: 8px; }
+.stage.boxes-5 .score { font-size: 165px; }
+.stage.boxes-4 .side-addr, .stage.boxes-5 .side-addr { font-size: 46px; }

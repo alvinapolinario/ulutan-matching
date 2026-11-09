@@ -38,8 +38,9 @@ test('store: lock file blocks a second live process but not a stale lock', () =>
   assert.equal(fs.readFileSync(file + '.lock', 'utf8'), String(process.pid));
   s.close();
   assert.ok(!fs.existsSync(file + '.lock'), 'lock released on close');
-  // A live foreign process (pid 1) blocks opening.
-  fs.writeFileSync(file + '.lock', '1');
+  // A live foreign process blocks opening. The parent (the test runner) is alive on every OS;
+  // pid 1 only always exists on Linux/macOS.
+  fs.writeFileSync(file + '.lock', String(process.ppid));
   assert.throws(() => new Store(file, { backupIntervalMs: 0 }), /already in use/);
   fs.unlinkSync(file + '.lock');
 });

@@ -1,7 +1,7 @@
 'use strict';
 const {
   badRequest, notFound, conflict, forbidden, CAN_MATCH, CAN_RUN_FIGHTS, RESULTS,
-  now, pad, cleanText, normalizeLegband,
+  now, pad, cleanText, normalizeLegband, perEntry,
 } = require('../lib/common');
 const { addAudit, bumpVersion } = require('./audit');
 const { describeLegband, fightLabel } = require('./registration');
@@ -100,17 +100,20 @@ function createMatchService(store, bus) {
   function publish(eventId, type, payload) { bus.publish(Number(eventId), type, payload); }
 
   /**
-   * The two score boxes of an entry. Boxes fill in the order its fights were decided
-   * (first result -> box 1, second -> box 2), whichever chicken fought.
+   * The score boxes of an entry, one per chicken (the event's "cocks per entry", 2-5). Boxes fill in
+   * the order its fights were decided (first result -> box 1, second -> box 2, …), whichever chicken fought.
    */
   function entryBoxes(d, entry, current) {
-    const own = d.legbands.filter((l) => l.entryId === entry.id).map((l) => l.id);
+    const ownLbs = d.legbands.filter((l) => l.entryId === entry.id);
+    const own = ownLbs.map((l) => l.id);
+    const ev = d.events.find((e) => e.id === entry.eventId);
+    const count = Math.max(perEntry(ev), ...ownLbs.map((l) => l.slot));
     const fights = d.matches.filter((m) => m.status !== 'CANCELLED' && (own.includes(m.redLegbandId) || own.includes(m.blueLegbandId)));
     const decided = fights.filter((m) => m.status === 'COMPLETED')
       .sort((a, b) => String(a.completedAt).localeCompare(String(b.completedAt)) || a.id - b.id);
     const pointsOf = (m) => (own.includes(m.redLegbandId) ? m.redPoints : m.bluePoints);
     const fightingNow = !!(current && current.status === 'CONFIRMED' && fights.some((m) => m.id === current.id));
-    return [0, 1].map((i) => ({
+    return Array.from({ length: count }, (_, i) => ({
       box: i + 1,
       points: decided[i] ? pointsOf(decided[i]) : null,
       fightNumber: decided[i] ? decided[i].fightNumber : null,
@@ -453,7 +456,7 @@ function createMatchService(store, bus) {
       return {
         eventId: ev.id,
         version: ev.stateVersion,
-        event: { name: ev.name, date: ev.date, venue: ev.venue, status: ev.status },
+        event: { name: ev.name, date: ev.date, venue: ev.venue, status: ev.status, cocksPerEntry: perEntry(ev) },
         published: ev.display.published,
         upcomingCount: ev.display.upcomingCount,
         current: slim(current),
@@ -526,7 +529,6 @@ function createMatchService(store, bus) {
       return svc.displayState(eventId);
     },
 
-    /** Score list of every entry: Entry | box 1 | box 2 (in the order results were declared). */
     /**
      * Gamecock list: one row per legband (plus one row for an entry that has no legband yet),
      * with owner, entry, status and - when matched - the opponent.
@@ -573,6 +575,7 @@ function createMatchService(store, bus) {
         || a.owner.localeCompare(b.owner) || a.entryNumber - b.entryNumber);
     },
 
+    /** Score list of every entry: Entry | box 1 … box N (in the order results were declared). */
     entryScores(eventId) {
       const d = store.data;
       const ev = requireEvent(d, eventId);

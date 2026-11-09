@@ -34,7 +34,10 @@ Want sample data to try it? Stop the server and run `npm run demo` (creates a de
 if there are no users yet it also creates `admin/admin123`, `operator/operator123`, `tv/tv1234` — change these).
 
 ### First setup checklist
-1. **Events → New event**: name, date, venue, first fight number, max legbands (default 500).
+1. **Events → New event**: name, date, venue, first fight number, max legbands (default 500), and
+   **Cocks per entry** (2, 3, 4 or 5 — default 2). This sets how many legband boxes Registration shows and how many
+   score boxes the TV side screens, TV Control and the Entry Scores report show. It can be raised later, but not
+   lowered below what an entry already has.
 2. Change the event status: **REGISTRATION OPEN** → (later) **MATCHING OPEN** → **ACTIVE** → **COMPLETED**.
 3. **Users**: add an *Operator* account for each station and a *Display* account for the TVs.
 
@@ -341,7 +344,7 @@ Everything is in the `data/` folder:
 
 - Legbands: auto-numbered per event, `001`…max (default 500), stored as text so `001` stays `001`.
   Numbers can repeat across different events.
-- Entry: exactly two legband slots; may be saved with one and completed later.
+- Entry: one legband slot per cock — the event's *Cocks per entry* (2–5, default 2); may be saved with fewer and completed later.
 - One fight per legband (no rematches). A cancelled match makes its legbands unusable.
 - Different entries of the same owner may be matched against each other; only two chickens of the *same entry* are refused.
 - Fight numbers: *Bunot* mode — the drawn number is typed and checked inside the transaction (unique per event, never reused, cancelled ones included); *Automatic* mode — a server counter. Running order follows fight number in Bunot mode.

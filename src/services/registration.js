@@ -1,8 +1,17 @@
 'use strict';
 const {
   badRequest, notFound, conflict, forbidden, CAN_REGISTER,
-  now, pad, nameKey, cleanText, normalizeLegband,
+  now, pad, nameKey, cleanText, normalizeLegband, MAX_PER_ENTRY, perEntry,
 } = require('../lib/common');
+
+/**
+ * Typed legband inputs from a request body, one per slot: either `legbands: ['001', '002', …]`
+ * or the fields legband1 … legband5. Blank / missing slots are ''.
+ */
+function legbandInputs(body) {
+  const src = Array.isArray(body.legbands) ? body.legbands : Array.from({ length: MAX_PER_ENTRY }, (_, i) => body[`legband${i + 1}`]);
+  return src.map((v) => (v == null ? '' : String(v).trim()));
+}
 const { addAudit, bumpVersion } = require('./audit');
 
 const fightLabel = (n) => (n == null ? '' : `Fight #${pad(n)}`);
@@ -79,6 +88,7 @@ function createRegistrationService(store, bus) {
   }
   function entryRow(data, entry) {
     const p = data.participants.find((x) => x.id === entry.participantId);
+    const ev = data.events.find((e) => e.id === entry.eventId);
     const lbs = data.legbands.filter((l) => l.entryId === entry.id);
     const slot = (n) => {
       const lb = lbs.find((l) => l.slot === n);
@@ -86,12 +96,15 @@ function createRegistrationService(store, bus) {
       const m = lb.matchId ? data.matches.find((x) => x.id === lb.matchId) : null;
       return { number: lb.number, status: lb.status, fightNumber: m ? m.fightNumber : null, matchStatus: m ? m.status : null };
     };
-    const s1 = slot(1); const s2 = slot(2);
-    const displayStatus = entry.status === 'WITHDRAWN' ? 'WITHDRAWN' : (s1 && s2 ? 'COMPLETE' : 'INCOMPLETE');
+    const n = Math.max(perEntry(ev), ...lbs.map((l) => l.slot));
+    const slots = Array.from({ length: n }, (_, i) => slot(i + 1));
+    const displayStatus = entry.status === 'WITHDRAWN' ? 'WITHDRAWN' : (slots.every(Boolean) ? 'COMPLETE' : 'INCOMPLETE');
+    // legband1 … legbandN kept alongside the `legbands` list for older screens and reports.
+    const named = Object.fromEntries(slots.map((s, i) => [`legband${i + 1}`, s]));
     return {
       id: entry.id, eventId: entry.eventId, entryNumber: entry.entryNumber, entryName: entry.entryName, address: entry.address || '',
       participantId: p ? p.id : null, participantName: p ? p.name : '',
-      legband1: s1, legband2: s2, status: entry.status, displayStatus,
+      cocksPerEntry: n, legbands: slots, ...named, status: entry.status, displayStatus,
       locked: lbs.some((l) => l.matchId != null),
       createdAt: entry.createdAt, updatedAt: entry.updatedAt,
     };
@@ -126,8 +139,7 @@ function createRegistrationService(store, bus) {
             || r.entryName.toLowerCase().includes(key)
             || r.address.toLowerCase().includes(key)
             || r.participantName.toLowerCase().includes(key)
-            || (r.legband1 && r.legband1.number.includes(key))
-            || (r.legband2 && r.legband2.number.includes(key));
+            || r.legbands.some((l) => l && l.number.includes(key));
         })
         .sort((a, b) => a.entryNumber - b.entryNumber);
     },
@@ -154,29 +166,37 @@ function createRegistrationService(store, bus) {
         .map((p) => ({ id: p.id, name: p.name }));
     },
 
-    register(eventId, { participantName, entryName, address, legbandCount = 2, legband1, legband2 }, userId) {
+    register(eventId, body, userId) {
+      const { participantName, entryName, address, legbandCount } = body || {};
       const pName = cleanText(participantName, 100);
       if (!pName) throw badRequest('Participant name is required.', 'VALIDATION', { field: 'participantName' });
       const eName = cleanText(entryName, 100) || pName;
       const addr = cleanText(address, 120);
-      const lb1 = legband1 == null ? '' : String(legband1).trim();
-      const lb2 = legband2 == null ? '' : String(legband2).trim();
+      const inputs = legbandInputs(body || {});
       const row = store.transaction((d) => {
         const ev = requireEvent(d, eventId);
         requireRegistrationOpen(ev);
         const manual = isManual(ev);
+        const max = perEntry(ev);
         // MANUAL: legband numbers are the pre-numbered bands from management, typed by the operator.
-        const typed = manual ? [lb1, lb2].filter(Boolean) : null;
-        // Legbands may be left blank and added later with "+ Legband".
-        if (manual && lb1 && lb2 && normalizeLegband(lb1, ev.legbandWidth) === normalizeLegband(lb2, ev.legbandWidth)) {
-          throw badRequest('Legband 1 and Legband 2 cannot be the same number.', 'VALIDATION', { field: 'legband2' });
+        // Blank boxes are skipped; the missing legbands can be added later with "+ Legband".
+        const typed = manual ? inputs.map((value, i) => ({ value, field: `legband${i + 1}` })).filter((x) => x.value) : null;
+        if (manual) {
+          const extra = inputs.findIndex((v, i) => v && i >= max);
+          if (extra >= 0) throw badRequest(`This event has ${max} cocks per entry.`, 'VALIDATION', { field: `legband${extra + 1}` });
+          const seen = new Map();
+          for (const t of typed) {
+            const key = normalizeLegband(t.value, ev.legbandWidth);
+            if (key && seen.has(key)) throw badRequest(`${seen.get(key)} and ${t.field.replace('legband', 'Legband ')} cannot be the same number.`, 'VALIDATION', { field: t.field });
+            if (key) seen.set(key, t.field.replace('legband', 'Legband '));
+          }
         }
-        const count = manual ? typed.length : Number(legbandCount);
-        if (manual ? count > 2 : ![1, 2].includes(count)) throw badRequest('An entry has 1 or 2 legbands.', 'VALIDATION', { field: 'legbandCount' });
+        const count = manual ? typed.length : Number(legbandCount ?? max);
+        if (!manual && !(Number.isInteger(count) && count >= 1 && count <= max)) throw badRequest(`An entry has 1 to ${max} legbands.`, 'VALIDATION', { field: 'legbandCount' });
         const used = d.legbands.filter((l) => l.eventId === ev.id).length;
         const left = manual ? ev.maxLegbands - used : Math.min(ev.maxLegbands - used, ev.maxLegbands - ev.nextLegbandNumber + 1);
         if (count > left) throw conflict(`Only ${Math.max(0, left)} legband(s) left out of ${ev.maxLegbands}.`, 'LEGBANDS_EXHAUSTED');
-        if (manual) { if (lb1) checkTypedLegband(d, ev, lb1, 'legband1'); if (lb2) checkTypedLegband(d, ev, lb2, lb1 ? 'legband2' : 'legband1'); }
+        if (manual) for (const t of typed) checkTypedLegband(d, ev, t.value, t.field);
         const p = findOrCreateParticipant(d, pName);
         const entryNumber = ev.nextEntryNumber;
         if (d.entries.some((e) => e.eventId === ev.id && e.entryNumber === entryNumber)) throw conflict(`Entry number ${entryNumber} already exists.`);
@@ -185,7 +205,7 @@ function createRegistrationService(store, bus) {
         d.entries.push(entry);
         const issued = [];
         for (let slot = 1; slot <= count; slot += 1) {
-          issued.push(issueLegband(d, ev, entry.id, slot, manual ? typed[slot - 1] : null, `legband${slot}`).number);
+          issued.push(issueLegband(d, ev, entry.id, slot, manual ? typed[slot - 1].value : null, manual ? typed[slot - 1].field : `legband${slot}`).number);
         }
         bumpVersion(d, ev.id);
         addAudit(store, d, { eventId: ev.id, entity: 'entry', entityId: entry.id, action: 'ENTRY_REGISTERED', newValues: { entryNumber, entryName: eName, address: addr, participant: p.name, legbands: issued }, userId });
@@ -203,8 +223,9 @@ function createRegistrationService(store, bus) {
         if (!entry) throw notFound('Entry not found.');
         if (entry.status !== 'ACTIVE') throw badRequest('This entry is withdrawn.');
         const have = d.legbands.filter((l) => l.entryId === entry.id).map((l) => l.slot);
-        const slot = [1, 2].find((s) => !have.includes(s));
-        if (!slot) throw conflict('This entry already has two legbands.');
+        const max = perEntry(ev);
+        const slot = Array.from({ length: max }, (_, i) => i + 1).find((s) => !have.includes(s));
+        if (!slot) throw conflict(`This entry already has ${max} legbands.`);
         if (isManual(ev) && !String(typedNumber || '').trim()) throw badRequest('Type the legband number.', 'VALIDATION', { field: 'legband' });
         const lb = issueLegband(d, ev, entry.id, slot, isManual(ev) ? typedNumber : null, 'legband');
         entry.updatedAt = now();
@@ -216,7 +237,9 @@ function createRegistrationService(store, bus) {
       return row;
     },
 
-    updateEntry(eventId, entryId, { participantName, entryName, address, legband1, legband2, reason }, user) {
+    updateEntry(eventId, entryId, body, user) {
+      const { participantName, entryName, address, reason } = body || {};
+      const inputs = legbandInputs(body || {});
       const row = store.transaction((d) => {
         const ev = requireEvent(d, eventId);
         if (['COMPLETED', 'ARCHIVED'].includes(ev.status) && user.role !== 'ADMIN') throw forbidden('This event is closed.');
@@ -243,8 +266,9 @@ function createRegistrationService(store, bus) {
         if (address !== undefined) entry.address = cleanText(address, 120);
         // Correct a mistyped legband number (only while that legband has never been in a match).
         const lbChanges = [];
-        for (const [slot, val] of [[1, legband1], [2, legband2]]) {
-          if (val === undefined || val === null || String(val).trim() === '') continue;
+        for (const [i, val] of inputs.entries()) {
+          const slot = i + 1;
+          if (!val) continue;
           const lb = lbs.find((l) => l.slot === slot);
           if (!lb) continue;
           const number = normalizeLegband(val, ev.legbandWidth);
@@ -254,8 +278,8 @@ function createRegistrationService(store, bus) {
           lbChanges.push({ slot, from: lb.number, to: nn });
           lb.number = nn; lb.updatedAt = now();
         }
-        const l1 = lbs.find((l) => l.slot === 1); const l2 = lbs.find((l) => l.slot === 2);
-        if (l1 && l2 && l1.number === l2.number) throw badRequest('Legband 1 and Legband 2 cannot be the same number.', 'VALIDATION', { field: 'legband2' });
+        const dup = lbs.find((l, i) => lbs.some((o, j) => j < i && o.number === l.number));
+        if (dup) throw badRequest(`Two legbands of this entry cannot both be ${dup.number}.`, 'VALIDATION', { field: `legband${dup.slot}` });
         if (lbChanges.length) old.legbands = lbChanges.map((c) => `${c.slot}:${c.from}`).join(', ');
         entry.updatedAt = now();
         const newP = d.participants.find((p) => p.id === entry.participantId);
@@ -320,7 +344,8 @@ function createRegistrationService(store, bus) {
       return {
         participants: new Set(entries.map((e) => e.participantId)).size,
         entries: entries.length,
-        incompleteEntries: entries.filter((e) => lbs.filter((l) => l.entryId === e.id).length < 2).length,
+        incompleteEntries: entries.filter((e) => lbs.filter((l) => l.entryId === e.id).length < perEntry(ev)).length,
+        cocksPerEntry: perEntry(ev),
         legbands: lbs.filter((l) => l.status !== 'WITHDRAWN').length,
         legbandsIssued: lbs.length,
         legbandsLeft: Math.max(0, (ev.legbandMode || 'MANUAL') === 'MANUAL' ? ev.maxLegbands - lbs.length : ev.maxLegbands - ev.nextLegbandNumber + 1),

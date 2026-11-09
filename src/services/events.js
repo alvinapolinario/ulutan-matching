@@ -1,5 +1,5 @@
 'use strict';
-const { badRequest, notFound, EVENT_STATUSES, EVENT_TRANSITIONS, now, cleanText } = require('../lib/common');
+const { badRequest, notFound, EVENT_STATUSES, EVENT_TRANSITIONS, now, cleanText, MIN_PER_ENTRY, MAX_PER_ENTRY, perEntry } = require('../lib/common');
 const { addAudit, bumpVersion } = require('./audit');
 
 function createEventService(store, bus) {
@@ -31,6 +31,11 @@ function createEventService(store, bus) {
     if (isCreate || input.fightNumberMode !== undefined) {
       out.fightNumberMode = input.fightNumberMode === undefined ? 'DRAW' : String(input.fightNumberMode).toUpperCase();
       if (!['DRAW', 'AUTO'].includes(out.fightNumberMode)) throw badRequest('Fight number mode must be DRAW (bunot) or AUTO.');
+    }
+    if (isCreate || input.cocksPerEntry !== undefined) {
+      const n = Number(input.cocksPerEntry ?? 2);
+      if (!Number.isInteger(n) || n < MIN_PER_ENTRY || n > MAX_PER_ENTRY) throw badRequest(`Cocks per entry must be between ${MIN_PER_ENTRY} and ${MAX_PER_ENTRY}.`);
+      out.cocksPerEntry = n;
     }
     if (input.upcomingCount !== undefined) {
       const n = Number(input.upcomingCount);
@@ -66,6 +71,7 @@ function createEventService(store, bus) {
           nextEntryNumber: 1,
           nextLegbandNumber: 1,
           maxLegbands: s.maxLegbands,
+          cocksPerEntry: s.cocksPerEntry,
           legbandWidth: 3,
           stateVersion: 1,
           display: { currentMatchId: null, published: true, upcomingCount: s.upcomingCount ?? 8 },
@@ -87,6 +93,15 @@ function createEventService(store, bus) {
         const old = {};
         for (const k of Object.keys(s)) {
           if (k === 'upcomingCount') { old[k] = e.display.upcomingCount; e.display.upcomingCount = s[k]; continue; }
+          if (k === 'cocksPerEntry') {
+            old[k] = perEntry(e);
+            // Never fewer slots than an entry already uses.
+            const own = d.legbands.filter((l) => l.eventId === e.id);
+            const most = own.reduce((m, l) => Math.max(m, l.slot || 0), 0);
+            if (s[k] < most) throw badRequest(`Cocks per entry cannot be below ${most}: an entry already has ${most} legbands.`);
+            e[k] = s[k];
+            continue;
+          }
           old[k] = e[k];
           if (k === 'startingFightNumber') {
             if (usedFights && s[k] !== e[k]) throw badRequest('Starting fight number cannot change after matches exist.');

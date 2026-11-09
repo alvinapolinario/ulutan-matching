@@ -7,8 +7,8 @@
   const addr = document.getElementById('address');
   const count = document.getElementById('legbandCount');           // AUTO mode only
   const MANUAL = document.body.dataset.legbandMode === 'MANUAL';
-  const lb1 = document.getElementById('legband1');                  // MANUAL mode only
-  const lb2 = document.getElementById('legband2');
+  const PER_ENTRY = Number(document.body.dataset.cocksPerEntry) || 2;  // cocks (legbands) per entry, 2-5
+  const lbInputs = [...document.querySelectorAll('#regForm .lb-input')]; // MANUAL mode only: Legband 1 … N
   const errBox = document.getElementById('regError');
   const submitBtn = document.getElementById('regSubmit');
   const rows = document.getElementById('entryRows');
@@ -29,12 +29,15 @@
     return `<span class="lb ${cls}" title="${lb.status}">${esc(lb.number)}</span>${fight}`;
   };
   const statusBadge = (s) => `<span class="badge status-badge text-bg-${{ COMPLETE: 'success', INCOMPLETE: 'warning', WITHDRAWN: 'secondary' }[s]}">${s}</span>`;
+  /** Legbands of an entry row, one per slot (null = not added yet). */
+  const slotsOf = (e) => (e.legbands || [e.legband1, e.legband2]);
+  const COLS = 5 + PER_ENTRY;
 
   function render() {
-    if (!entries.length) { rows.innerHTML = '<tr><td colspan="7" class="text-muted">No entries found.</td></tr>'; return; }
+    if (!entries.length) { rows.innerHTML = `<tr><td colspan="${COLS}" class="text-muted">No entries found.</td></tr>`; return; }
     rows.innerHTML = entries.map((e) => `<tr>
       <td class="fw-bold">${e.entryNumber}</td><td>${esc(e.entryName)}${e.address ? `<div class="small text-muted">${esc(e.address)}</div>` : ''}</td><td>${esc(e.participantName)}</td>
-      <td>${lbCell(e.legband1)}</td><td>${lbCell(e.legband2)}</td><td>${statusBadge(e.displayStatus)}</td>
+      ${Array.from({ length: PER_ENTRY }, (_, i) => `<td>${lbCell(slotsOf(e)[i])}</td>`).join('')}<td>${statusBadge(e.displayStatus)}</td>
       <td class="text-end text-nowrap">
         ${e.displayStatus === 'INCOMPLETE' ? `<button class="btn btn-sm btn-warning" data-add="${e.id}"><i class="bi bi-plus-lg" aria-hidden="true"></i> Legband</button>` : ''}
         ${e.status === 'ACTIVE' && (!e.locked || App.isAdmin) ? `<button class="btn btn-sm btn-outline-dark" data-edit="${e.id}"><i class="bi bi-pencil" aria-hidden="true"></i> Edit</button>` : ''}
@@ -54,7 +57,8 @@
     if (!summary.nextLegband) nextLb.textContent = 'none left';
     else {
       const first = parseInt(summary.nextLegband, 10);
-      nextLb.textContent = n === 2 && summary.legbandsLeft >= 2 ? `${App.pad(first)} & ${App.pad(first + 1)}` : App.pad(first);
+      const k = Math.max(1, Math.min(n, summary.legbandsLeft));
+      nextLb.textContent = Array.from({ length: k }, (_, i) => App.pad(first + i)).join(', ');
     }
   }
 
@@ -82,17 +86,24 @@
   eName.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); addr.focus(); } });
   const submitOnEnter = (el) => el && el.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.repeat) { e.preventDefault(); form.requestSubmit(); } });
   if (MANUAL) {
-    // owner -> entry -> address -> Legband 1 -> Legband 2 (Enter saves)
-    addr.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); lb1.focus(); } });
-    // Enter on an empty Legband 1 saves the entry without legbands (they can be added later).
-    lb1.addEventListener('keydown', (e) => { if (e.key !== 'Enter') return; e.preventDefault(); if (e.repeat) return; if (!lb1.value.trim()) form.requestSubmit(); else lb2.focus(); });
-    submitOnEnter(lb2);
-    // Live check: is the typed number free?
-    const checkLb = App.debounce(async (input, info) => {
+    // owner -> entry -> address -> Legband 1 -> … -> Legband N (Enter on the last one saves)
+    addr.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); lbInputs[0].focus(); } });
+    // Enter on an empty legband box saves the entry with what was typed so far (the rest can be added later).
+    lbInputs.forEach((el, i) => {
+      if (i === lbInputs.length - 1) { submitOnEnter(el); return; }
+      el.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault(); if (e.repeat) return;
+        if (!el.value.trim()) form.requestSubmit(); else lbInputs[i + 1].focus();
+      });
+    });
+    // Live check: is the typed number free? (each box checks independently, so one debounce per box)
+    const checkLb = (input, info) => App.debounce(async () => {
       const n = App.normLegband(input.value);
       if (!input.value.trim()) { info.textContent = ''; info.className = 'small lb-info'; return; }
       if (!n) { info.textContent = 'Digits only'; info.className = 'small lb-info text-danger'; return; }
-      if (input === lb2 && n === App.normLegband(lb1.value)) { info.textContent = 'Same as Legband 1'; info.className = 'small lb-info text-danger'; return; }
+      const same = lbInputs.slice(0, lbInputs.indexOf(input)).findIndex((o) => n === App.normLegband(o.value));
+      if (same >= 0) { info.textContent = `Same as Legband ${same + 1}`; info.className = 'small lb-info text-danger'; return; }
       try {
         const lb = await api('GET', ev(`/legbands/${n}`));
         info.textContent = `Taken: Entry #${lb.entry.entryNumber} ${lb.entry.entryName}`;
@@ -101,10 +112,10 @@
         if (e.status === 404) { info.textContent = `✓ ${n} is free`; info.className = 'small lb-info text-success'; }
       }
     }, 200);
-    [[lb1, 'lb1Info'], [lb2, 'lb2Info']].forEach(([el, id]) => el.addEventListener('input', () => {
-      el.value = el.value.replace(/\D/g, '');
-      checkLb(el, document.getElementById(id));
-    }));
+    lbInputs.forEach((el) => {
+      const check = checkLb(el, document.getElementById(`lb${el.dataset.slot}Info`));
+      el.addEventListener('input', () => { el.value = el.value.replace(/\D/g, ''); check(); });
+    });
   } else {
     submitOnEnter(addr);
     submitOnEnter(count);
@@ -126,15 +137,17 @@
     saving = true; submitBtn.disabled = true;
     try {
       const body = { participantName: pName.value, entryName: eName.value, address: addr.value };
-      if (MANUAL) { body.legband1 = lb1.value; body.legband2 = lb2.value; } else body.legbandCount = Number(count.value);
+      if (MANUAL) body.legbands = lbInputs.map((el) => el.value); else body.legbandCount = Number(count.value);
       const row = await api('POST', ev('/entries'), body);
-      const lbs = [row.legband1, row.legband2].filter(Boolean).map((l) => `<span class="lb fs-3 me-2">${esc(l.number)}</span>`).join('') || '<span class="text-muted">none yet</span>';
+      const have = slotsOf(row).filter(Boolean);
+      const lbs = have.map((l) => `<span class="lb fs-3 me-2">${esc(l.number)}</span>`).join('') || '<span class="text-muted">none yet</span>';
+      const missing = slotsOf(row).length - have.length;
       lastSaved.innerHTML = `<div class="small text-muted">Saved</div><div class="fw-bold fs-5">Entry #${row.entryNumber} · ${esc(row.entryName)}</div>
         <div class="small">${esc(row.participantName)}${row.address ? ' · ' + esc(row.address) : ''}</div><div class="mt-1">Legbands: ${lbs}</div>
-        ${row.displayStatus === 'INCOMPLETE' ? `<div class="small text-warning-emphasis mt-1">Incomplete — add the ${row.legband1 ? 'second legband' : 'legbands'} later with “+ Legband” in the table.</div>` : ''}`;
+        ${row.displayStatus === 'INCOMPLETE' ? `<div class="small text-warning-emphasis mt-1">Incomplete — add the remaining ${missing} legband${missing === 1 ? '' : 's'} later with “+ Legband” in the table.</div>` : ''}`;
       lastSaved.classList.remove('d-none');
-      const nums = [row.legband1, row.legband2].filter(Boolean).map((l) => l.number);
-      toast(`Entry #${row.entryNumber} saved${nums.length ? ' — legband ' + nums.join(' & ') : ' (no legband yet)'}`);
+      const nums = have.map((l) => l.number);
+      toast(`Entry #${row.entryNumber} saved${nums.length ? ' — legband ' + nums.join(', ') : ' (no legband yet)'}`);
       form.reset();
       document.querySelectorAll('.lb-info').forEach((x) => { x.textContent = ''; });
       pName.focus();
@@ -143,8 +156,10 @@
       showError(err.message);
       const f = err.details && err.details.field;
       if (f === 'participantName') pName.focus();
-      else if (f === 'legband1' && lb1) { lb1.focus(); lb1.select(); }
-      else if (f === 'legband2' && lb2) { lb2.focus(); lb2.select(); }
+      else {
+        const el = f && lbInputs.find((x) => x.name === f);
+        if (el) { el.focus(); el.select(); }
+      }
     } finally { saving = false; submitBtn.disabled = false; }
   });
 
@@ -156,15 +171,19 @@
     try {
       if (b.dataset.add) {
         let payload = {};
+        const ent = entries.find((x) => x.id === Number(b.dataset.add));
+        const before = ent ? slotsOf(ent) : [];
         if (MANUAL) {
-          const ent = entries.find((x) => x.id === Number(b.dataset.add));
-          const r = await App.prompt({ title: ent && !ent.legband1 ? 'Add legband 1' : 'Add legband 2', label: 'Legband number (from the band)', inputType: 'text', confirmText: 'Add legband' });
+          const next = before.findIndex((l) => !l);
+          const r = await App.prompt({ title: `Add legband ${next >= 0 ? next + 1 : ''}`.trim(), label: 'Legband number (from the band)', inputType: 'text', confirmText: 'Add legband' });
           if (!r) return;
           payload = { legband: r.value };
         }
         b.disabled = true;
         const row = await api('POST', ev(`/entries/${b.dataset.add}/legbands`), payload);
-        const added = row.legband2 ? row.legband2.number : row.legband1.number;
+        const after = slotsOf(row);
+        const newSlot = after.find((l, i) => l && !before[i]) || after.filter(Boolean).pop();
+        const added = newSlot ? newSlot.number : '';
         toast(row.displayStatus === 'COMPLETE' ? `Entry #${row.entryNumber} is complete — legband ${added}` : `Legband ${added} added to Entry #${row.entryNumber}`);
         reloadAll();
       } else if (b.dataset.edit) {
@@ -190,7 +209,9 @@
     editForm.address.value = ent.address || '';
     document.getElementById('editLocked').classList.toggle('d-none', !ent.locked);
     document.getElementById('reasonWrap').classList.toggle('d-none', !ent.locked);
-    for (const [k, lb] of [['legband1', ent.legband1], ['legband2', ent.legband2]]) {
+    for (let i = 0; i < PER_ENTRY; i += 1) {
+      const k = `legband${i + 1}`; const lb = slotsOf(ent)[i];
+      if (!editForm[k]) continue;
       editForm[k].value = lb ? lb.number : '';
       editForm[k].disabled = !lb || lb.status !== 'AVAILABLE';
       editForm[k].title = !lb ? 'Use “+ Legband” in the table to add it' : (lb.status !== 'AVAILABLE' ? 'Already in a match — cannot be renumbered' : '');
@@ -201,7 +222,12 @@
   editForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
-      await api('PATCH', ev(`/entries/${editForm.entryId.value}`), { participantName: editForm.participantName.value, entryName: editForm.entryName.value, address: editForm.address.value, legband1: editForm.legband1.disabled ? undefined : editForm.legband1.value, legband2: editForm.legband2.disabled ? undefined : editForm.legband2.value, reason: editForm.reason.value });
+      // One value per slot; a disabled box (in a match, or not added yet) is sent as null = leave unchanged.
+      const legbands = Array.from({ length: PER_ENTRY }, (_, i) => {
+        const el = editForm[`legband${i + 1}`];
+        return !el || el.disabled ? null : el.value;
+      });
+      await api('PATCH', ev(`/entries/${editForm.entryId.value}`), { participantName: editForm.participantName.value, entryName: editForm.entryName.value, address: editForm.address.value, legbands, reason: editForm.reason.value });
       editModal.hide(); toast('Entry updated.'); reloadAll();
     } catch (err) { const b = document.getElementById('editError'); b.textContent = err.message; b.classList.remove('d-none'); }
   });

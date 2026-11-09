@@ -1,5 +1,5 @@
 /* MERON / WALA side screen. Shows the current fight's entry for one corner and the
- * scores (1, 0, ½) of that entry's two chickens. Same live-update rules as /display:
+ * scores (1, 0, ½) of that entry's chickens (one box per cock, 2-5 per the event setting). Same live-update rules as /display:
  * full state on every (re)connect, versioned pushes, and a 30 s safety poll. */
 (function () {
   'use strict';
@@ -54,6 +54,16 @@
   window.addEventListener('resize', fitName);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitName);
 
+  /** One score box per cock (the event's "cocks per entry", 2-5). Rebuilt if the setting changes live. */
+  function ensureBoxes(n) {
+    const wrap = $('scores');
+    if (!n || wrap.children.length === n) return;
+    wrap.innerHTML = Array.from({ length: n }, (_, i) => `<div class="score-box" id="box${i + 1}"><span class="score" id="score${i + 1}"></span></div>`).join('');
+    const st = $('stage');
+    st.className = st.className.replace(/\bboxes-\d+\b/g, '').trim();
+    st.classList.add(`boxes-${n}`);
+  }
+
   function idle(text) {
     setOutcome(null);
     $('entryName').textContent = text;
@@ -78,6 +88,7 @@
     $('scores').classList.remove('hidden');
     fitName();
     setOutcome(b.outcome);
+    ensureBoxes(b.scores.length);
     b.scores.forEach((sc, i) => {
       $(`score${i + 1}`).textContent = fmt(sc.points);
       $(`box${i + 1}`).classList.toggle('fighting', sc.fighting);
