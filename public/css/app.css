@@ -43,6 +43,10 @@ body { background: #eef1f4; color: var(--ink); }
 .live-dot.off { background: #dc2626; }
 
 /* ---------- Matching ---------- */
+.owner-results { max-height: 320px; overflow-y: auto; }
+.owner-bird { display: inline-flex; align-items: center; gap: .35rem; border: 1px solid #dee2e6; border-radius: .5rem; padding: .2rem .25rem .2rem .5rem; margin: .2rem .35rem .2rem 0; }
+.owner-bird.off { opacity: .55; }
+.owner-bird .lb { font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 700; }
 .corner { border-radius: .75rem; padding: 1.25rem; background: #fff; border-top: 8px solid; height: 100%; }
 .corner.red { border-color: var(--red); }
 .corner.blue { border-color: var(--blue); }

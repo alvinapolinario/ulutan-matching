@@ -248,6 +248,28 @@ function createRegistrationService(store, bus) {
       return { bird: me, weightTolerance: tol, matchByWeight: byWeight, needsWeight: byWeight && me.weight == null, candidates: list.slice(0, Math.max(1, Math.min(Number(limit) || 30, 200))) };
     },
 
+    /**
+     * Matching search: active entries whose owner (or entry name) contains the text, each with its birds
+     * described for matching (available or why not). At least 2 characters; at most 30 entries.
+     */
+    ownerEntries(eventId, q) {
+      const d = store.data;
+      const ev = requireEvent(d, eventId);
+      const key = nameKey(q);
+      if (key.length < 2) return [];
+      return d.entries
+        .filter((e) => e.eventId === ev.id && e.status === 'ACTIVE')
+        .map((e) => ({ e, p: d.participants.find((x) => x.id === e.participantId) }))
+        .filter(({ e, p }) => (p && p.nameKey.includes(key)) || e.entryName.toLowerCase().includes(key))
+        .sort((a, b) => String(a.p ? a.p.name : '').localeCompare(String(b.p ? b.p.name : '')) || a.e.entryNumber - b.e.entryNumber)
+        .slice(0, 30)
+        .map(({ e, p }) => ({
+          id: e.id, entryNumber: e.entryNumber, entryName: e.entryName, address: e.address || '',
+          participant: p ? { id: p.id, name: p.name } : null,
+          birds: d.legbands.filter((l) => l.entryId === e.id).sort((a, b) => a.slot - b.slot).map((l) => describeLegband(d, l)),
+        }));
+    },
+
     listEntries(eventId, { q = '', status = '' } = {}) {
       const data = store.data;
       const key = nameKey(q);

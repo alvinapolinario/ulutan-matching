@@ -202,6 +202,60 @@
     review();
   });
 
+  // ---------- Search by owner: list the owner's entries and birds, pick one for Red or Blue ----------
+  const ownerInput = $('ownerInput');
+  const ownerResults = $('ownerResults');
+  const ownerHint = $('ownerHint');
+  let ownerToken = 0;
+  let ownerTimer = null;
+  function ownerMsg(text) {
+    ownerHint.textContent = text;
+    ownerHint.classList.toggle('d-none', !text);
+  }
+  function birdChip(b) {
+    const w = b.weight != null ? ` · ${App.grams(b.weight)}` : '';
+    const label = `${typeBadge(b)} <span class="lb">${b.number ? `LB ${esc(b.number)}` : 'no legband'}</span>${b.wingband ? ` <span class="small text-muted">WB ${esc(b.wingband)}</span>` : ''}<span class="small">${w}</span>`;
+    if (!b.available) {
+      const why = b.match ? `Fight #${pad(b.match.fightNumber)}` : b.entryIncomplete ? 'entry incomplete' : b.number ? b.status.toLowerCase() : 'no legband';
+      return `<span class="owner-bird off" title="${esc(b.unavailableReason || '')}">${label} <span class="badge text-bg-secondary">${esc(why)}</span></span>`;
+    }
+    return `<span class="owner-bird">${label}
+      <button type="button" class="btn btn-sm btn-danger py-0" data-owner-pick="red" data-band="${esc(b.number)}">Red</button>
+      <button type="button" class="btn btn-sm btn-primary py-0" data-owner-pick="blue" data-band="${esc(b.number)}">Blue</button></span>`;
+  }
+  async function searchOwner() {
+    const q = ownerInput.value.trim();
+    const token = (ownerToken += 1);
+    if (q.length < 2) { ownerResults.classList.add('d-none'); ownerResults.innerHTML = ''; ownerMsg(q ? 'Type at least 2 letters.' : ''); return; }
+    try {
+      const list = await api('GET', ev(`/owner-entries?q=${encodeURIComponent(q)}`));
+      if (token !== ownerToken) return;
+      ownerMsg(list.length ? `${list.length} entr${list.length === 1 ? 'y' : 'ies'} found${list.length >= 30 ? ' (first 30 — type more of the name)' : ''}.` : `No entry found for “${q}”.`);
+      ownerResults.innerHTML = list.map((e) => `<div class="list-group-item">
+        <div><b>#${e.entryNumber} · ${esc(e.entryName)}</b> <span class="text-muted">— ${esc(e.participant ? e.participant.name : '')}${e.address ? ' · ' + esc(e.address) : ''}</span></div>
+        <div>${e.birds.length ? e.birds.map(birdChip).join('') : '<span class="small text-muted">No birds registered.</span>'}</div></div>`).join('');
+      ownerResults.classList.toggle('d-none', !list.length);
+    } catch (e) { if (token === ownerToken) ownerMsg(e.message); }
+  }
+  ownerInput.addEventListener('input', () => { clearTimeout(ownerTimer); ownerTimer = setTimeout(searchOwner, 200); });
+  ownerInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && ownerInput.value) { e.preventDefault(); ownerInput.value = ''; searchOwner(); }
+    else if (e.key === 'Enter') { e.preventDefault(); clearTimeout(ownerTimer); searchOwner(); }
+  });
+  ownerResults.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-owner-pick]');
+    if (!b || pending) return;
+    const corner = b.dataset.ownerPick;
+    const other = corner === 'red' ? 'blue' : 'red';
+    inputs[corner].value = b.dataset.band;
+    valid[corner] = null;
+    enterHeld = false;
+    // Both corners filled: check the pair (and open the dialog). Otherwise check this bird and go to the other corner.
+    if (inputs[other].value.trim()) { review(); return; }
+    lookup(corner);
+    inputs[other].focus();
+  });
+
   // ---------- Confirmation dialog ----------
   function side(lb, label) {
     const w = weightText(lb);
@@ -324,7 +378,7 @@
     } catch (_) { /* ignore */ }
   }
   App.live({
-    onChange: () => { loadRecent(); loadEvent(); for (const c of ['red', 'blue']) if (valid[c] && !pending) { valid[c] = null; if (inputs[c].value) setInfo(c, '', '<span class="text-muted">List changed — press Enter to re-check.</span>'); } },
+    onChange: () => { loadRecent(); loadEvent(); if (ownerInput.value.trim()) searchOwner(); for (const c of ['red', 'blue']) if (valid[c] && !pending) { valid[c] = null; if (inputs[c].value) setInfo(c, '', '<span class="text-muted">List changed — press Enter to re-check.</span>'); } },
     onResync: () => { loadRecent(); loadEvent(); },
   });
   loadRecent(); loadEvent();

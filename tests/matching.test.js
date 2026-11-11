@@ -255,3 +255,28 @@ test('matching: correction, fight number change, reorder, results and standings'
   await admin.post(`${base}/matches/${m5.id}/cancel`, { reason: 'x' });
   assert.equal((await op.post(`${base}/display/current`, { matchId: m5.id })).status, 409);
 });
+
+test('matching: search by owner lists the owner\'s entries with each bird and whether it can be matched', async (t) => {
+  const ctx = await setup();
+  t.after(ctx.stop);
+  const op = await login(ctx, 'op', 'op1234');
+  const base = `/api/events/${ctx.eventId}`;
+  await seed(ctx, op);
+  await op.post(`${base}/matches`, { red: '001', blue: '005', idempotencyKey: key() });
+
+  let r = await op.get(`${base}/owner-entries?q=alv`);
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.body.map((e) => e.entryName), ['Alvin 1', 'Alvin 2']);
+  assert.equal(r.body[0].participant.name, 'Alvin');
+  assert.deepEqual(r.body[0].birds.map((b) => b.number), ['001', '002']);
+  assert.equal(r.body[0].birds[0].available, false);
+  assert.equal(r.body[0].birds[0].match.fightNumber, 1);
+  assert.equal(r.body[0].birds[1].available, true);
+
+  r = await op.get(`${base}/owner-entries?q=  JOEL `);
+  assert.deepEqual(r.body.map((e) => e.entryNumber), [3]);
+  r = await op.get(`${base}/owner-entries?q=a`);
+  assert.deepEqual(r.body, [], 'one letter is not searched');
+  r = await op.get(`${base}/owner-entries?q=nobody`);
+  assert.deepEqual(r.body, []);
+});

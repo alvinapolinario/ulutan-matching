@@ -36,6 +36,7 @@ module.exports = function apiRoutes(services) {
   // ----- Registration -----
   r.get('/participants', requireRole(...STAFF), (req, res) => res.json(registration.searchParticipants(req.query.q)));
   r.get('/events/:eventId/entries', requireRole(...STAFF), (req, res) => res.json(registration.listEntries(req.event.id, req.query)));
+  r.get('/events/:eventId/owner-entries', requireRole(...STAFF), (req, res) => res.json(registration.ownerEntries(req.event.id, req.query.q)));
   r.get('/events/:eventId/entries/:entryId', requireRole(...STAFF), (req, res) => res.json(registration.getEntry(req.event.id, req.params.entryId)));
   r.post('/events/:eventId/entries', requireRole(...STAFF), (req, res) => res.status(201).json(registration.register(req.event.id, req.body, me(req).id)));
   r.patch('/events/:eventId/entries/:entryId', requireRole(...STAFF), (req, res) => res.json(registration.updateEntry(req.event.id, req.params.entryId, req.body, me(req))));
