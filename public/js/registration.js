@@ -10,6 +10,7 @@
   const MANUAL = document.body.dataset.legbandMode === 'MANUAL';
   const PER_ENTRY = Number(document.body.dataset.cocksPerEntry) || 2;  // birds per entry, 2-5
   const BY_WEIGHT = App.weightRulesOn;                                  // weight rules on: cocks need a weight
+  const DERBY = App.eventType === 'DERBY';                              // derby birds may have no band (E12-2)
   // One row per bird: type, legband (MANUAL), wingband (stag / bullstag), weight.
   const birdRows = Array.from({ length: PER_ENTRY }, (_, i) => ({
     type: $(`type${i + 1}`), leg: $(`legband${i + 1}`), wing: $(`wingband${i + 1}`), weight: $(`weight${i + 1}`), info: $(`lb${i + 1}Info`),
@@ -32,7 +33,9 @@
     if (!lb) return '<span class="text-muted">—</span>';
     const cls = { AVAILABLE: 'text-success', MATCHED: 'text-primary', INACTIVE: 'text-danger', WITHDRAWN: 'text-muted' }[lb.status] || '';
     const fight = lb.fightNumber ? ` <span class="small text-muted">F#${App.pad(lb.fightNumber)}</span>` : '';
-    const leg = lb.number ? `<span class="lb ${cls}" title="Legband · ${lb.status}">${esc(lb.number)}</span>${fight}` : '<span class="small text-warning-emphasis">no legband yet</span>';
+    const leg = lb.number ? `<span class="lb ${cls}" title="Legband · ${lb.status}">${esc(lb.number)}</span>${fight}`
+      : lb.band ? `<span class="lb ${cls}" title="No band: entry and bird number · ${lb.status}">${esc(lb.band)}</span>${fight}`
+        : '<span class="small text-warning-emphasis">no legband yet</span>';
     const extra = [lb.wingband ? `WB ${esc(lb.wingband)}` : '', lb.weight != null ? App.grams(lb.weight) : (lb.type === 'COCK' && BY_WEIGHT && lb.status === 'AVAILABLE' ? '<span class="text-warning-emphasis">not weighed</span>' : '')].filter(Boolean).join(' · ');
     return `<div>${App.typeBadge(lb.type)} ${leg}</div>${extra ? `<div class="small text-muted">${extra}</div>` : ''}`;
   };
@@ -78,7 +81,7 @@
     if (r.wing) {
       r.wing.disabled = off || !App.needsWingband(t);
       if (!App.needsWingband(t)) r.wing.value = '';
-      r.wing.placeholder = App.needsWingband(t) ? 'required' : '—';
+      r.wing.placeholder = App.needsWingband(t) ? (DERBY ? 'optional' : 'required') : '—';
     }
     r.weight.disabled = off;
     const range = App.minWeight != null || App.maxWeight != null ? `${App.minWeight ?? '…'}–${App.maxWeight ?? '…'}` : 'required';
@@ -195,7 +198,7 @@
   function showError(msg) { errBox.textContent = msg; errBox.classList.remove('d-none'); }
 
   // ---------- Save ----------
-  const birdSummary = (l) => `<div>${App.typeBadge(l.type)} <span class="lb fs-4">${l.number ? esc(l.number) : '<span class="fs-6 text-warning-emphasis">no LB</span>'}</span>`
+  const birdSummary = (l) => `<div>${App.typeBadge(l.type)} <span class="lb fs-4">${l.number || l.band ? esc(l.number || l.band) : '<span class="fs-6 text-warning-emphasis">no LB</span>'}</span>`
     + `<span class="small text-muted ms-1">${[l.wingband ? `WB ${esc(l.wingband)}` : '', l.weight != null ? App.grams(l.weight) : ''].filter(Boolean).join(' · ')}</span></div>`;
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -215,7 +218,7 @@
       if (MANUAL) body.legbands = birdRows.map((r, i) => val(r.leg, i)); else body.legbandCount = use;
       const row = await api('POST', ev('/entries'), body);
       const have = slotsOf(row).filter(Boolean);
-      const waiting = have.filter((l) => !l.number).length;
+      const waiting = DERBY ? 0 : have.filter((l) => !l.number).length; // derby birds may fight without a band
       const missing = slotsOf(row).length - have.length;
       lastSaved.innerHTML = `<div class="small text-muted">Saved</div><div class="fw-bold fs-5">Entry #${row.entryNumber} · ${esc(row.entryName)}</div>
         <div class="small">${esc(row.participantName)}${row.address ? ' · ' + esc(row.address) : ''}</div>
@@ -270,8 +273,8 @@
           const next = birds.findIndex((l) => !l);
           const r = await App.prompt({
             title: `Add bird ${next >= 0 ? next + 1 : ''} to Entry #${ent ? ent.entryNumber : ''}`.trim(),
-            label: MANUAL ? 'Legband number (from the band)' : 'Weight in grams',
-            required: MANUAL, confirmText: 'Add bird',
+            label: MANUAL ? `Legband number (from the band)${DERBY ? ' — leave blank if the bird has no band' : ''}` : 'Weight in grams',
+            required: MANUAL && !DERBY, confirmText: 'Add bird',
             extraHtml: `<label class="form-label">Type of bird</label><select class="form-select mb-2" name="ptype">${typeOptions}</select>
               ${WITH_WING ? '<label class="form-label">Wingband <span class="small text-muted">(stag / bullstag only)</span></label><input class="form-control mb-2" name="pwing" inputmode="numeric" maxlength="6" autocomplete="off">' : ''}
               ${MANUAL ? `<label class="form-label">Weight in grams <span class="small text-muted">(cock${BY_WEIGHT ? ', required' : ''})</span></label><input class="form-control mb-2" name="pweight" inputmode="decimal" maxlength="8" autocomplete="off">` : ''}`,

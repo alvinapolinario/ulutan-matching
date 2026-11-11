@@ -101,19 +101,27 @@ const weightRules = (ev) => {
   if (!on) return null;
   return { tolerance: ev.weightTolerance == null ? null : ev.weightTolerance, min: ev.minWeight == null ? null : ev.minWeight, max: ev.maxWeight == null ? null : ev.maxWeight };
 };
-/** The legband number ('' while the legband has not been put on yet). */
-const bandLabel = (lb) => (lb && lb.number) || '';
+/** Derby birds without a band are named by entry number and bird number: entry 12, bird 2 = "E12-2". */
+const entryRef = (entryNumber, slot) => `E${entryNumber}-${slot}`;
+/**
+ * The legband number. Without one: "E12-2" when the entry number is given (derby birds that fight
+ * without a band), otherwise '' (the legband has not been put on yet).
+ */
+const bandLabel = (lb, entryNumber = null) => (lb && lb.number) || (lb && entryNumber != null ? entryRef(entryNumber, lb.slot) : '');
 
 /** Event kinds. A DERBY entry has at least 3 birds; a HACKFIGHT keeps the original rules (2 by default). */
 const EVENT_TYPES = ['DERBY', 'HACKFIGHT'];
 const eventType = (ev) => (ev && ev.eventType === 'DERBY' ? 'DERBY' : 'HACKFIGHT');
 
 /**
- * Parse what an operator typed to find a bird: "7" / "L7" / "LB 007" = legband 007, "W7" / "WB-007" = wingband 007.
- * Returns { by: 'LEG'|'WING', number: '007' } or null.
+ * Parse what an operator typed to find a bird: "7" / "L7" / "LB 007" = legband 007, "W7" / "WB-007" = wingband 007,
+ * "12-2" / "E12-2" = entry 12, bird 2.
+ * Returns { by: 'LEG'|'WING', number: '007' }, { by: 'ENTRY', entryNumber: 12, slot: 2 } or null.
  */
 function parseBand(input, width = 3) {
   const s = String(input == null ? '' : input).trim().toUpperCase();
+  const e = /^E?\s*(\d{1,4})\s*[-.\/]\s*(\d)$/.exec(s);
+  if (e) return Number(e[1]) >= 1 && Number(e[2]) >= 1 ? { by: 'ENTRY', entryNumber: Number(e[1]), slot: Number(e[2]) } : null;
   const m = /^(?:(LB|L|WB|W)[\s-]*)?(\d{1,6})$/.exec(s);
   if (!m) return null;
   const number = normalizeLegband(m[2], width);
@@ -132,7 +140,7 @@ function parseWeight(input) {
 }
 
 module.exports = {
-  BIRD_TYPES, BIRD_LABEL, birdType, needsWingband, allowedTypes, weightRules, bandLabel, EVENT_TYPES, eventType, parseBand, parseWeight,
+  BIRD_TYPES, BIRD_LABEL, birdType, needsWingband, allowedTypes, weightRules, bandLabel, entryRef, EVENT_TYPES, eventType, parseBand, parseWeight,
   AppError, badRequest, notFound, conflict, forbidden,
   ROLES, EVENT_STATUSES, EVENT_TRANSITIONS, CAN_REGISTER, CAN_MATCH, CAN_RUN_FIGHTS,
   LEGBAND_STATUSES, MATCH_STATUSES, RESULTS,

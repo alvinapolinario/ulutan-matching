@@ -44,7 +44,7 @@ function createReportService(store, { registration, matches }) {
       title: 'Legband Master List',
       build(id, status) {
         const rows = registration.listLegbands(id, { status }).map((l) => ({
-          number: l.number || '', type: l.typeLabel, wingband: l.wingband || '', weight: grams(l.weight), slot: l.slot, entryNumber: l.entry ? l.entry.entryNumber : '', entryName: l.entry ? l.entry.entryName : '',
+          number: l.label || '', type: l.typeLabel, wingband: l.wingband || '', weight: grams(l.weight), slot: l.slot, entryNumber: l.entry ? l.entry.entryNumber : '', entryName: l.entry ? l.entry.entryName : '',
           participant: l.participant ? l.participant.name : '', status: l.status, fight: l.match ? fight(l.match.fightNumber) : '',
         }));
         return { columns: [{ key: 'number', label: 'Legband', legband: true }, { key: 'type', label: 'Type' }, { key: 'wingband', label: 'Wingband', legband: true }, { key: 'weight', label: 'Weight' }, { key: 'slot', label: 'Slot' }, { key: 'entryNumber', label: 'Entry No.' }, { key: 'entryName', label: 'Entry Name' }, { key: 'participant', label: 'Participant' }, { key: 'status', label: 'Status' }, { key: 'fight', label: 'Fight' }], rows };

@@ -24,6 +24,7 @@
   const confirmBtn = $('confirmBtn');
   const confirmError = $('confirmError');
 
+  const BAND_HELP = `Enter a legband number (digits), or W and the wingband number${App.eventType === 'DERBY' ? ', or entry and bird number (e.g. 12-2)' : ''}.`;
   const valid = { red: null, blue: null };   // last successful lookup per corner
   let pending = null;                         // { red, blue, key } while the dialog is open
   let busy = false;
@@ -38,13 +39,15 @@
   }
   const typeBadge = (lb) => App.typeBadge(lb.type);
   const weightText = (lb) => (lb.weight != null ? App.grams(lb.weight) : (lb.type === 'COCK' && App.weightTolerance != null ? '<span class="text-danger fw-semibold">not weighed</span>' : ''));
-  /** The legband number, sent with the confirm. */
-  const refOf = (lb) => lb.number;
+  /** What is sent with the confirm: the legband number, or "E12-2" for a derby bird without a band. */
+  const refOf = (lb) => lb.ref || lb.number;
+  /** How a bird is shown: "LB 012", or "E12-2" for a derby bird without a band. */
+  const bandText = (lb) => (lb.number ? `LB <b>${esc(lb.number)}</b>` : `<b>${esc(lb.label || '')}</b> <span class="small text-muted">(no band)</span>`);
   function infoHtml(lb) {
     const w = weightText(lb);
     return `<div class="entry">#${lb.entry.entryNumber} · ${esc(lb.entry.entryName)}</div>
       <div>${esc(lb.participant ? lb.participant.name : '')}${lb.entry.address ? ' · ' + esc(lb.entry.address) : ''} · Slot ${lb.slot} · <span class="badge text-bg-success">AVAILABLE</span></div>
-      <div class="mt-1">${typeBadge(lb)} LB <b>${esc(lb.number)}</b>${lb.wingband ? ` · WB ${esc(lb.wingband)}` : ''}${w ? ' · ' + w : ''}</div>`;
+      <div class="mt-1">${typeBadge(lb)} ${bandText(lb)}${lb.wingband ? ` · WB ${esc(lb.wingband)}` : ''}${w ? ' · ' + w : ''}</div>`;
   }
   function showError(corner, msg, focus = true) {
     setInfo(corner, 'bad', esc(msg));
@@ -56,7 +59,7 @@
   /** Look up a corner's legband. Re-uses a lookup that is already running for the same number. */
   function lookup(corner, { focusOnError = true } = {}) {
     const number = App.normBand(inputs[corner].value);
-    if (!number) { showError(corner, 'Enter a legband number (digits), or W and the wingband number.'); return Promise.resolve(false); }
+    if (!number) { showError(corner, BAND_HELP); return Promise.resolve(false); }
     inputs[corner].value = number;
     if (valid[corner] && valid[corner].typed === number) return Promise.resolve(true);
     if (inflight[corner] && inflight[corner].number === number) return inflight[corner].promise;
@@ -120,7 +123,7 @@
     if (e.key !== 'Enter') return;
     e.preventDefault();
     if (e.repeat) return;
-    if (!App.normBand(inputs.red.value)) { showError('red', 'Enter a legband number (digits), or W and the wingband number.'); return; }
+    if (!App.normBand(inputs.red.value)) { showError('red', BAND_HELP); return; }
     const check = lookup('red', { focusOnError: false });
     inputs.blue.focus(); inputs.blue.select();
     check.then((ok) => { if (!ok && !pending) { inputs.red.focus(); inputs.red.select(); } });
@@ -179,13 +182,13 @@
     try {
       const res = await api('GET', ev(`/legbands/${refOf(lb)}/opponents`));
       if (token !== oppToken) return;
-      $('oppFor').innerHTML = `${typeBadge(lb)} <b>${esc(lb.number)}</b>${lb.weight != null ? ` (${App.grams(lb.weight)})` : ''}`;
+      $('oppFor').innerHTML = `${typeBadge(lb)} <b>${esc(lb.label || lb.number)}</b>${lb.weight != null ? ` (${App.grams(lb.weight)})` : ''}`;
       $('oppNote').textContent = res.matchByWeight ? `within ±${res.weightTolerance} g, closest first` : `${App.BIRD_LABEL[lb.type].toLowerCase()}s only`;
       const rows = res.candidates;
       $('oppRows').innerHTML = res.needsWeight
         ? '<tr><td colspan="6" class="text-danger">Weigh this cock first (Registration → Edit).</td></tr>'
         : rows.length ? rows.map((o) => `<tr>
-            <td class="lb fw-semibold">${esc(o.number)}${o.wingband ? `<div class="small text-muted fw-normal">WB ${esc(o.wingband)}</div>` : ''}</td><td>${o.weight != null ? App.grams(o.weight) : '—'}</td>
+            <td class="lb fw-semibold">${esc(o.label || o.number)}${o.wingband ? `<div class="small text-muted fw-normal">WB ${esc(o.wingband)}</div>` : ''}</td><td>${o.weight != null ? App.grams(o.weight) : '—'}</td>
             <td>${o.diff != null ? `${o.diff} g` : ''}</td><td>#${o.entry.entryNumber} ${esc(o.entry.entryName)}</td>
             <td>${esc(o.participant ? o.participant.name : '')}</td>
             <td class="text-end"><button type="button" class="btn btn-sm btn-outline-primary" data-pick="${esc(refOf(o))}">Use as Blue</button></td></tr>`).join('')
@@ -214,14 +217,14 @@
   }
   function birdChip(b) {
     const w = b.weight != null ? ` · ${App.grams(b.weight)}` : '';
-    const label = `${typeBadge(b)} <span class="lb">${b.number ? `LB ${esc(b.number)}` : 'no legband'}</span>${b.wingband ? ` <span class="small text-muted">WB ${esc(b.wingband)}</span>` : ''}<span class="small">${w}</span>`;
+    const label = `${typeBadge(b)} <span class="lb">${b.number ? `LB ${esc(b.number)}` : b.label ? esc(b.label) : 'no legband'}</span>${b.wingband ? ` <span class="small text-muted">WB ${esc(b.wingband)}</span>` : ''}<span class="small">${w}</span>`;
     if (!b.available) {
-      const why = b.match ? `Fight #${pad(b.match.fightNumber)}` : b.entryIncomplete ? 'entry incomplete' : b.number ? b.status.toLowerCase() : 'no legband';
+      const why = b.match ? `Fight #${pad(b.match.fightNumber)}` : b.entryIncomplete ? 'entry incomplete' : b.number || b.label ? b.status.toLowerCase() : 'no legband';
       return `<span class="owner-bird off" title="${esc(b.unavailableReason || '')}">${label} <span class="badge text-bg-secondary">${esc(why)}</span></span>`;
     }
     return `<span class="owner-bird">${label}
-      <button type="button" class="btn btn-sm btn-danger py-0" data-owner-pick="red" data-band="${esc(b.number)}">Red</button>
-      <button type="button" class="btn btn-sm btn-primary py-0" data-owner-pick="blue" data-band="${esc(b.number)}">Blue</button></span>`;
+      <button type="button" class="btn btn-sm btn-danger py-0" data-owner-pick="red" data-band="${esc(refOf(b))}">Red</button>
+      <button type="button" class="btn btn-sm btn-primary py-0" data-owner-pick="blue" data-band="${esc(refOf(b))}">Blue</button></span>`;
   }
   async function searchOwner() {
     const q = ownerInput.value.trim();
@@ -260,7 +263,7 @@
   function side(lb, label) {
     const w = weightText(lb);
     return `<div class="corner-label">${label}</div>
-      <div class="big-lb">${esc(lb.number)}</div>
+      <div class="big-lb">${esc(lb.label || lb.number)}</div>
       <dl>
         <dt>Bird</dt><dd>${typeBadge(lb)}</dd>
         ${lb.wingband ? `<dt>Wingband</dt><dd class="fw-bold">WB ${esc(lb.wingband)}</dd>` : ''}

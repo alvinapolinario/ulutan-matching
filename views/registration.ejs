@@ -54,8 +54,8 @@
       <div class="form-text mb-<%= manualLb ? 3 : 2 %>">
         <b><%= derby ? 'Derby' : 'Hackfight' %></b> · <%= perEntry %> birds per entry · allowed: <b><%= types.map((t) => typeLabel[t]).join(', ') %></b>.
         <% if (withCock) { %><b>Cock</b>: weight<%= byWeight ? ` required${range ? ` (${range} g)` : ''}, matched within ±${rules.tolerance} g` : ' optional (no weight rules)' %>; no wingband.<% } %>
-        <% if (withWing) { %><b><%= types.filter((t) => t !== 'COCK').map((t) => typeLabel[t]).join(' / ') %></b>: wingband required.<% } %>
-        <% if (manualLb) { %>The legband can be typed now or added later with <b>+ Legband</b>.<% } %>
+        <% if (withWing) { %><b><%= types.filter((t) => t !== 'COCK').map((t) => typeLabel[t]).join(' / ') %></b>: wingband <%= derby ? 'optional' : 'required' %>.<% } %>
+        <% if (derby) { %>Every row is a bird. A bird without a band is matched by entry and bird number (e.g. <b>12-2</b> = entry 12, bird 2).<% } else if (manualLb) { %>The legband can be typed now or added later with <b>+ Legband</b>.<% } %>
         <kbd>Enter</kbd> moves to the next box; on the last box it saves. Fewer birds now? <kbd>Enter</kbd> twice on the next bird saves. <kbd>Ctrl</kbd>+<kbd>Enter</kbd> saves at any time.
       </div>
       <% if (!manualLb) { %>

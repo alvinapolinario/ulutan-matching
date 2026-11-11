@@ -13,7 +13,8 @@
 </div>
 <div class="alert alert-warning d-none" id="closedNotice" role="alert"></div>
 <% const types = allowedTypes(event); const wr = weightRules(event); const withWing = types.some((t) => t !== 'COCK'); %>
-<% const bandHint = withWing ? 'Legband number (or W + wingband number)' : 'Legband number'; const bandMode = withWing ? 'text' : 'numeric'; %>
+<% const derbyEv = event.eventType === 'DERBY'; %>
+<% const bandHint = (withWing ? 'Legband number (or W + wingband number)' : 'Legband number') + (derbyEv ? ' — no band: entry-bird, e.g. 12-2' : ''); const bandMode = withWing || derbyEv ? 'text' : 'numeric'; %>
 <% const typeText = { COCK: `cock vs cock${wr && wr.tolerance != null ? ` (by weight, at most ±${wr.tolerance} g apart)` : ''}`, STAG: 'stag vs stag', BULLSTAG: 'bullstag vs bullstag' }; %>
 <div class="small text-muted mb-2">
   <span class="badge <%= event.eventType === 'DERBY' ? 'text-bg-warning' : 'text-bg-light border' %>"><%= event.eventType === 'DERBY' ? 'DERBY' : 'HACKFIGHT' %></span>

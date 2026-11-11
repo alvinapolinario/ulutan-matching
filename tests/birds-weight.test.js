@@ -62,7 +62,7 @@ test('registration: type of bird, wingband for stag / bullstag, weight for cock'
   const base = `/api/events/${ctx.eventId}`;
   await admin.patch(base, { eventType: 'DERBY', weightTolerance: 35, minWeight: 1500, maxWeight: 3000 });
 
-  // Cock: weight required (event matches by weight), no wingband. Stag / bullstag: wingband required.
+  // Cock: weight required (event matches by weight), no wingband. Derby stag / bullstag: wingband optional.
   const a = await admin.post(`${base}/entries`, {
     participantName: 'Ann',
     types: ['COCK', 'STAG', 'BULLSTAG'], legbands: ['1', '2', ''], wingbands: ['', '10', '11'], weights: ['2100', '', '2.25'],
@@ -71,15 +71,15 @@ test('registration: type of bird, wingband for stag / bullstag, weight for cock'
   assert.deepEqual(a.body.legbands.map((l) => [l.type, l.number, l.wingband, l.weight]), [
     ['COCK', '001', null, 2100], ['STAG', '002', '010', null], ['BULLSTAG', null, '011', 2250],
   ]);
-  assert.equal(a.body.displayStatus, 'INCOMPLETE', 'the bullstag still needs its legband');
+  assert.equal(a.body.displayStatus, 'COMPLETE', 'derby: a bird without a legband still counts (matched as E1-3)');
 
   const post = (b) => admin.post(`${base}/entries`, { participantName: 'X', ...b });
   let r = await post({ types: ['COCK'], legbands: ['5'] });
   assert.equal(r.body.code, 'WEIGHT_REQUIRED');
   assert.equal(r.body.details.field, 'weight1');
   r = await post({ types: ['STAG'], legbands: ['5'] });
-  assert.equal(r.body.code, 'WINGBAND_REQUIRED');
-  assert.equal(r.body.details.field, 'wingband1');
+  assert.equal(r.body.code, 'WEIGHT_REQUIRED', 'derby: the stag needs no wingband; bird 2 (a cock) needs its weight');
+  assert.equal(r.body.details.field, 'weight2');
   r = await post({ types: ['COCK'], wingbands: ['20'], weights: ['2100'] });
   assert.equal(r.status, 400);
   assert.match(r.body.error, /cock has no wingband/);
@@ -175,45 +175,76 @@ test('matching: same type only; cocks by weight; stags by wingband lookup; oppon
   assert.ok(gc.rows.some((x) => x.status === 'No legband yet' && x.wingband === '023'));
 });
 
-test('derby: an entry fights only once all its birds are registered with legbands', async (t) => {
+test('derby: an entry fights only once all its birds are registered (with or without bands)', async (t) => {
   const ctx = await setup({ status: 'MATCHING_OPEN', legbandMode: 'MANUAL' });
   t.after(ctx.stop);
   const admin = await login(ctx, 'admin', 'admin123');
   const base = `/api/events/${ctx.eventId}`;
-  await admin.patch(base, { eventType: 'DERBY' }); // 3 birds per entry
+  // Registered as a hackfight (2 birds), then the event becomes a derby (3 birds): this entry is one bird short.
+  const two = await admin.post(`${base}/entries`, { participantName: 'Two', legbands: ['4', '5'] });
+  await admin.patch(base, { eventType: 'DERBY' });
   const full = await admin.post(`${base}/entries`, { participantName: 'Full', legbands: ['1', '2', '3'] });
   assert.equal(full.body.displayStatus, 'COMPLETE');
-  const two = await admin.post(`${base}/entries`, { participantName: 'Two', legbands: ['4', '5'] });
-  const third = await admin.post(`${base}/entries`, { participantName: 'Waiting', types: ['COCK', 'COCK', 'STAG'], legbands: ['6', '7', ''], wingbands: ['', '', '9'] });
+  // Derby rows are all birds: legband and wingband may be left blank.
+  const third = await admin.post(`${base}/entries`, { participantName: 'Bandless', types: ['COCK', 'COCK', 'STAG'], legbands: ['6', '', ''] });
   assert.equal(third.status, 201, JSON.stringify(third.body));
+  assert.equal(third.body.legbands.filter(Boolean).length, 3);
 
   // Entry with only 2 of 3 birds: refused on either corner.
   let r = await admin.post(`${base}/matches/check`, { red: '1', blue: '4' });
   assert.equal(r.status, 400);
   assert.equal(r.body.code, 'ENTRY_INCOMPLETE');
   assert.equal(r.body.details.field, 'blue');
-  assert.match(r.body.error, /has 2 of 3 birds with legbands/);
-  r = await admin.post(`${base}/matches/check`, { red: '6', blue: '1' });
-  assert.equal(r.body.code, 'ENTRY_INCOMPLETE', 'a registered bird still waiting for its legband also blocks the entry');
-  assert.equal(r.body.details.field, 'red');
+  assert.match(r.body.error, /has 2 of 3 birds registered/);
   assert.equal((await admin.get(`${base}/legbands/4`)).body.available, false);
-  assert.deepEqual((await admin.get(`${base}/legbands/1/opponents`)).body.candidates, [], 'incomplete entries are not offered');
 
-  // Completing the entries opens them for matching.
-  await admin.post(`${base}/entries/${two.body.id}/legbands`, { legband: '8' });
-  await admin.post(`${base}/entries/${third.body.id}/legbands`, { legband: '10' });
+  // Birds without a band are found and matched by entry and bird number.
+  const e3 = third.body.entryNumber;
+  let lb = (await admin.get(`${base}/legbands/${e3}-2`)).body;
+  assert.equal(lb.available, true, JSON.stringify(lb));
+  assert.equal(lb.number, null);
+  assert.equal(lb.label, `E${e3}-2`);
+  assert.equal(lb.ref, `E${e3}-2`);
+  assert.equal((await admin.get(`${base}/legbands/E${e3}-2`)).body.slot, 2);
+  assert.equal((await admin.get(`${base}/legbands/${e3}-1`)).body.number, '006', 'entry-bird finds banded birds too');
+  r = await admin.get(`${base}/legbands/${e3}-4`);
+  assert.equal(r.status, 404); assert.match(r.body.error, /has no bird 4/);
+  r = await admin.get(`${base}/legbands/99-1`);
+  assert.equal(r.status, 404); assert.match(r.body.error, /Entry #99 is not registered/);
+  assert.ok((await admin.get(`${base}/legbands/1/opponents`)).body.candidates.some((c) => c.ref === `E${e3}-2`), 'band-less birds are offered as opponents');
+
+  r = await admin.post(`${base}/matches/check`, { red: '1', blue: `${e3}-2` });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const m = await admin.post(`${base}/matches`, { red: '1', blue: `E${e3}-2`, idempotencyKey: key() });
+  assert.equal(m.status, 201, JSON.stringify(m.body));
+  assert.equal(m.body.match.blue.legband, `E${e3}-2`);
+  r = await admin.post(`${base}/matches/check`, { red: '2', blue: `${e3}-2` });
+  assert.match(r.body.error, new RegExp(`Bird E${e3}-2 is already matched`));
+  const gc = (await admin.get(`${base}/gamecocks`)).body;
+  assert.equal(gc.find((x) => x.entryNumber === e3 && x.slot === 3).legband, `E${e3}-3`);
+  assert.equal(gc.find((x) => x.entryNumber === e3 && x.slot === 3).status, 'NOT_MATCHED');
+
+  // Unmatch works for a band-less bird too.
+  r = await admin.post(`${base}/matches/${m.body.match.id}/unmatch`, { reason: 'mistake' });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal((await admin.get(`${base}/legbands/${e3}-2`)).body.available, true);
+
+  // "+ Legband" with no number adds the missing bird without a band; the entry can then fight.
+  r = await admin.post(`${base}/entries/${two.body.id}/legbands`, {});
+  assert.equal(r.status, 201, JSON.stringify(r.body));
   r = await admin.post(`${base}/matches/check`, { red: '1', blue: '4' });
   assert.equal(r.status, 200, JSON.stringify(r.body));
-  assert.deepEqual((await admin.get(`${base}/legbands/1/opponents`)).body.candidates.map((c) => c.number), ['004', '005', '006', '007', '008']);
-  const m = await admin.post(`${base}/matches`, { red: '1', blue: '6', idempotencyKey: key() });
-  assert.equal(m.status, 201, JSON.stringify(m.body));
 
-  // A hackfight keeps the original rule: incomplete entries may fight.
+  // A hackfight keeps the original rules: incomplete entries may fight, birds need a legband, stags a wingband.
   await admin.patch(base, { eventType: 'HACKFIGHT' });
   const h = await admin.post(`${base}/entries`, { participantName: 'Hack', legbands: ['11'] });
   assert.equal(h.status, 201);
   r = await admin.post(`${base}/matches/check`, { red: '11', blue: '2' });
   assert.equal(r.status, 200, JSON.stringify(r.body));
+  r = await admin.post(`${base}/matches/check`, { red: '11', blue: `${e3}-3` });
+  assert.match(r.body.error, /has no legband yet/);
+  r = await admin.post(`${base}/entries`, { participantName: 'Stag', types: ['STAG'], legbands: ['12'] });
+  assert.equal(r.body.code, 'WINGBAND_REQUIRED');
 });
 
 test('event settings: types of bird allowed and weight rules on / off', async (t) => {
@@ -241,9 +272,10 @@ test('event settings: types of bird allowed and weight rules on / off', async (t
   await admin.post(`${sb}/status`, { status: 'REGISTRATION_OPEN' });
   let r = await admin.post(`${sb}/entries`, { participantName: 'S', types: ['COCK'], weights: ['2000'] });
   assert.equal(r.body.code, 'TYPE_NOT_ALLOWED');
-  // Blank type = the first allowed type (stag), which needs a wingband.
-  r = await admin.post(`${sb}/entries`, { participantName: 'S', legbands: ['1'] });
-  assert.equal(r.body.code, 'WINGBAND_REQUIRED');
+  // Blank type = the first allowed type (stag); in a derby it may have no wingband.
+  r = await admin.post(`${sb}/entries`, { participantName: 'S', legbands: ['9'] });
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  assert.deepEqual(r.body.legbands.map((l) => [l.type, l.number, l.wingband]), [['STAG', '009', null], ['STAG', null, null], ['STAG', null, null]]);
   r = await admin.post(`${sb}/entries`, { participantName: 'S', legbands: ['1', '2', '3'], wingbands: ['11', '12', '13'], types: ['', 'BULLSTAG', 'STAG'] });
   assert.equal(r.status, 201, JSON.stringify(r.body));
   assert.deepEqual(r.body.legbands.map((l) => l.type), ['STAG', 'BULLSTAG', 'STAG']);

@@ -1,13 +1,15 @@
 'use strict';
 const {
   badRequest, notFound, conflict, forbidden, CAN_MATCH, CAN_RUN_FIGHTS, RESULTS,
-  now, pad, cleanText, perEntry, birdType, bandLabel, BIRD_LABEL, weightRules,
+  now, pad, cleanText, perEntry, birdType, bandLabel, BIRD_LABEL, weightRules, eventType,
 } = require('../lib/common');
 const { addAudit, bumpVersion } = require('./audit');
 const { describeLegband, findBand, bandRef, fightLabel } = require('./registration');
 
 function createMatchService(store, bus) {
   const userName = (data, id) => { const u = data.users.find((x) => x.id === id); return u ? u.username : null; };
+  /** A bird's band for messages and screens: its legband, or "E12-2" for a derby bird fighting without one. */
+  const label = (data, lb) => { const e = data.entries.find((x) => x.id === lb.entryId); return bandLabel(lb, e ? e.entryNumber : null); };
 
   function side(data, legbandId) {
     const lb = data.legbands.find((l) => l.id === legbandId);
@@ -15,7 +17,7 @@ function createMatchService(store, bus) {
     const entry = data.entries.find((e) => e.id === lb.entryId);
     const p = entry && data.participants.find((x) => x.id === entry.participantId);
     return {
-      legband: bandLabel(lb), number: lb.number, type: birdType(lb), typeLabel: BIRD_LABEL[birdType(lb)], wingband: lb.wingband || null, weight: lb.weight == null ? null : lb.weight, slot: lb.slot,
+      legband: bandLabel(lb, entry ? entry.entryNumber : null), number: lb.number, type: birdType(lb), typeLabel: BIRD_LABEL[birdType(lb)], wingband: lb.wingband || null, weight: lb.weight == null ? null : lb.weight, slot: lb.slot,
       entryNumber: entry ? entry.entryNumber : null,
       entryName: entry ? entry.entryName : '',
       address: entry ? (entry.address || '') : '',
@@ -57,7 +59,7 @@ function createMatchService(store, bus) {
     const name = corner === 'red' ? 'Red' : 'Blue';
     if (!String(input == null ? '' : input).trim()) throw fieldError(corner, `Enter the ${name} Corner band number.`);
     const r = findBand(d, ev, input);
-    if (r.error === 'INVALID') throw fieldError(corner, `Enter the ${name} Corner legband number (or W and the wingband number).`);
+    if (r.error === 'INVALID') throw fieldError(corner, `Enter the ${name} Corner legband number (or W and the wingband number${eventType(ev) === 'DERBY' ? ', or entry and bird number like 12-2' : ''}).`);
     if (r.error) throw fieldError(corner, r.message, 'LEGBAND_NOT_FOUND');
     return r.lb;
   }
@@ -65,12 +67,12 @@ function createMatchService(store, bus) {
    * Weight rule for cocks: both weighed and no more than the event's tolerance apart.
    * Events without a tolerance (and stags) are not checked. Returns the difference in grams (or null).
    */
-  function weightRule(ev, redLb, blueLb) {
+  function weightRule(d, ev, redLb, blueLb) {
     const diff = redLb.weight != null && blueLb.weight != null ? Math.abs(redLb.weight - blueLb.weight) : null;
     const rules = weightRules(ev);
     if (birdType(redLb) !== 'COCK' || !rules || rules.tolerance == null) return diff;
-    if (redLb.weight == null) throw fieldError('red', `Weigh ${bandLabel(redLb)} first: cocks are matched by weight.`, 'NO_WEIGHT');
-    if (blueLb.weight == null) throw fieldError('blue', `Weigh ${bandLabel(blueLb)} first: cocks are matched by weight.`, 'NO_WEIGHT');
+    if (redLb.weight == null) throw fieldError('red', `Weigh ${label(d, redLb)} first: cocks are matched by weight.`, 'NO_WEIGHT');
+    if (blueLb.weight == null) throw fieldError('blue', `Weigh ${label(d, blueLb)} first: cocks are matched by weight.`, 'NO_WEIGHT');
     if (diff > rules.tolerance) {
       throw fieldError('blue', `Weight difference is ${diff} g (${redLb.weight} g vs ${blueLb.weight} g); the limit is ±${rules.tolerance} g.`, 'WEIGHT_GAP');
     }
@@ -90,7 +92,7 @@ function createMatchService(store, bus) {
       const a = BIRD_LABEL[birdType(redLb)].toLowerCase(); const b = BIRD_LABEL[birdType(blueLb)].toLowerCase();
       throw fieldError('blue', `Red is a ${a} and Blue is a ${b}. Birds fight their own type only: cock vs cock, stag vs stag, bullstag vs bullstag.`, 'TYPE_MISMATCH');
     }
-    const weightDiff = weightRule(ev, redLb, blueLb);
+    const weightDiff = weightRule(d, ev, redLb, blueLb);
     return { redLb, blueLb, red, blue, weightDiff };
   }
 
@@ -227,14 +229,14 @@ function createMatchService(store, bus) {
         };
         // Guarded status change: fails if either legband is no longer free.
         for (const lb of [redLb, blueLb]) {
-          if (lb.status !== 'AVAILABLE' || lb.matchId != null) throw conflict(`Legband ${lb.number} was just taken by another operator.`, 'UNAVAILABLE');
+          if (lb.status !== 'AVAILABLE' || lb.matchId != null) throw conflict(`${label(d, lb)} was just taken by another operator.`, 'UNAVAILABLE');
           lb.status = 'MATCHED';
           lb.matchId = match.id;
           lb.updatedAt = ts;
         }
         d.matches.push(match);
         bumpVersion(d, ev.id);
-        addAudit(store, d, { eventId: ev.id, entity: 'match', entityId: match.id, matchId: match.id, action: 'MATCH_CONFIRMED', newValues: { fightNumber, red: bandLabel(redLb), blue: bandLabel(blueLb), ...(redLb.weight != null && blueLb.weight != null ? { weights: `${redLb.weight} g vs ${blueLb.weight} g` } : {}) }, userId: user.id });
+        addAudit(store, d, { eventId: ev.id, entity: 'match', entityId: match.id, matchId: match.id, action: 'MATCH_CONFIRMED', newValues: { fightNumber, red: label(d, redLb), blue: label(d, blueLb), ...(redLb.weight != null && blueLb.weight != null ? { weights: `${redLb.weight} g vs ${blueLb.weight} g` } : {}) }, userId: user.id });
         return matchRow(d, match);
       });
       if (!replay) publish(eventId, 'match:confirmed', { match: row });
@@ -286,7 +288,7 @@ function createMatchService(store, bus) {
         const ts = now();
         for (const id of [m.redLegbandId, m.blueLegbandId]) {
           const lb = d.legbands.find((l) => l.id === id);
-          if (!lb || lb.status !== 'MATCHED' || lb.matchId !== m.id) throw conflict(`Legband ${lb ? lb.number : id} is not in this match.`);
+          if (!lb || lb.status !== 'MATCHED' || lb.matchId !== m.id) throw conflict(`${lb ? label(d, lb) : `Bird ${id}`} is not in this match.`);
           lb.status = 'AVAILABLE';
           lb.matchId = null;
           lb.statusReason = null;
@@ -333,7 +335,7 @@ function createMatchService(store, bus) {
         oldLb.status = 'AVAILABLE'; oldLb.matchId = null;
         const otherLb = d.legbands.find((l) => l.id === (corner === 'red' ? m.blueLegbandId : m.redLegbandId));
         otherLb.status = 'AVAILABLE'; otherLb.matchId = null;
-        const pair = corner === 'red' ? validatePair(d, ev, legband, bandRef(otherLb)) : validatePair(d, ev, bandRef(otherLb), legband);
+        const pair = corner === 'red' ? validatePair(d, ev, legband, bandRef(d, otherLb)) : validatePair(d, ev, bandRef(d, otherLb), legband);
         const newLb = corner === 'red' ? pair.redLb : pair.blueLb;
         const ts = now();
         otherLb.status = 'MATCHED'; otherLb.matchId = m.id;
@@ -342,7 +344,7 @@ function createMatchService(store, bus) {
         if (corner === 'red') m.redLegbandId = newLb.id; else m.blueLegbandId = newLb.id;
         m.updatedAt = ts;
         bumpVersion(d, ev.id);
-        addAudit(store, d, { eventId: ev.id, entity: 'match', entityId: m.id, matchId: m.id, action: 'MATCH_LEGBAND_CORRECTED', oldValues: { corner, legband: oldLb.number }, newValues: { corner, legband: newLb.number }, reason: why, userId: user.id });
+        addAudit(store, d, { eventId: ev.id, entity: 'match', entityId: m.id, matchId: m.id, action: 'MATCH_LEGBAND_CORRECTED', oldValues: { corner, legband: label(d, oldLb) }, newValues: { corner, legband: label(d, newLb) }, reason: why, userId: user.id });
         return matchRow(d, m);
       });
       publish(eventId, 'match:updated', { match: row });
@@ -403,7 +405,7 @@ function createMatchService(store, bus) {
         const ev = requireEvent(d, eventId);
         const m = requireMatch(d, ev, matchId);
         if (m.status !== 'CONFIRMED') throw conflict('Meron/Wala can only be changed before the result is declared.');
-        const before = { meron: d.legbands.find((l) => l.id === m.redLegbandId).number, wala: d.legbands.find((l) => l.id === m.blueLegbandId).number };
+        const before = { meron: label(d, d.legbands.find((l) => l.id === m.redLegbandId)), wala: label(d, d.legbands.find((l) => l.id === m.blueLegbandId)) };
         [m.redLegbandId, m.blueLegbandId] = [m.blueLegbandId, m.redLegbandId];
         m.updatedAt = now();
         bumpVersion(d, ev.id);
@@ -593,8 +595,10 @@ function createMatchService(store, bus) {
               opponent: opp && { legband: opp.legband, weight: opp.weight, slot: opp.slot, entryNumber: opp.entryNumber, entryName: opp.entryName, owner: opp.participantName },
             };
           }
-          if (!lb.number && status === 'NOT_MATCHED') status = 'NO_LEGBAND';
-          rows.push({ ...base, legband: lb.number || null, type: birdType(lb), typeLabel: BIRD_LABEL[birdType(lb)], wingband: lb.wingband || null, weight: lb.weight == null ? null : lb.weight, slot: lb.slot, status, fight });
+          // Derby birds may fight without a band (shown as E12-2); elsewhere a bird without one is waiting for it.
+          const derby = eventType(ev) === 'DERBY';
+          if (!lb.number && !derby && status === 'NOT_MATCHED') status = 'NO_LEGBAND';
+          rows.push({ ...base, legband: derby ? bandLabel(lb, e.entryNumber) : (lb.number || null), type: birdType(lb), typeLabel: BIRD_LABEL[birdType(lb)], wingband: lb.wingband || null, weight: lb.weight == null ? null : lb.weight, slot: lb.slot, status, fight });
         }
       }
       return rows.sort((a, b) => (a.legband === null) - (b.legband === null)

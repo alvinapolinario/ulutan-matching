@@ -19,16 +19,24 @@
   };
   /**
    * What an operator typed to find a bird: "7" -> "007" (legband), "w7" / "WB 7" -> "W007" (wingband),
-   * "l7" / "LB7" -> "L007" (legband). Returns null if it is not a band number.
+   * "l7" / "LB7" -> "L007" (legband), "12-2" / "e12-2" -> "E12-2" (derby: entry 12, bird 2).
+   * Returns null if it is not a band number.
    */
   App.normBand = (v) => {
+    const e = /^E?\s*(\d{1,4})\s*[-./]\s*(\d)$/.exec(String(v || '').trim().toUpperCase());
+    if (e) return Number(e[1]) >= 1 && Number(e[2]) >= 1 ? `E${Number(e[1])}-${e[2]}` : null;
     const m = /^(LB|L|WB|W)?[\s-]*(\d{1,6})$/.exec(String(v || '').trim().toUpperCase());
     if (!m || parseInt(m[2], 10) <= 0) return null;
     const n = String(parseInt(m[2], 10)).padStart(App.width, '0');
     return m[1] ? m[1][0] + n : n;
   };
-  /** Keep only what a band can contain while typing: an optional L/W prefix and digits. */
+  /** Keep only what a band can contain while typing: an optional L/W prefix and digits (derby also "E12-2"). */
   App.cleanBandInput = (v) => {
+    if (App.eventType === 'DERBY') {
+      const e = /^(E?)(\d{1,4})[-./](\d?)/.exec(String(v || '').toUpperCase().replace(/[^E0-9./-]/g, ''));
+      if (e) return `${e[1]}${e[2]}-${e[3]}`;
+      if (/^E/i.test(String(v || '').trim())) return 'E' + String(v).replace(/\D/g, '').slice(0, 4);
+    }
     const s = String(v || '').toUpperCase().replace(/[^LWB0-9]/g, '');
     const m = /^([LW]B?)?(\d*)/.exec(s);
     return (m[1] || '') + m[2];
@@ -53,8 +61,8 @@
   App.grams = (g) => (g == null ? '' : `${Number(g).toLocaleString('en-US')} g`);
   App.BIRD_LABEL = { COCK: 'Cock', STAG: 'Stag', BULLSTAG: 'Bullstag' };
   App.needsWingband = (type) => type === 'STAG' || type === 'BULLSTAG';
-  /** Legband number of a bird ('' until its legband is put on). */
-  App.bandLabel = (lb) => (!lb ? '' : lb.number || '');
+  /** Legband number of a bird ('' until its legband is put on; "E12-2" for a derby bird without a band). */
+  App.bandLabel = (lb) => (!lb ? '' : lb.number || lb.band || lb.label || '');
   /** Small coloured label for a bird type. */
   App.typeBadge = (type) => `<span class="badge bird-${String(type || 'COCK').toLowerCase()}">${App.BIRD_LABEL[type] || 'Cock'}</span>`;
   App.uuid = () => (crypto.randomUUID ? crypto.randomUUID() : 'k' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12));

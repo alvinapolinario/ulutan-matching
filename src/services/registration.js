@@ -2,7 +2,7 @@
 const {
   badRequest, notFound, conflict, forbidden, CAN_REGISTER,
   now, pad, nameKey, cleanText, normalizeLegband, MAX_PER_ENTRY, perEntry,
-  BIRD_TYPES, BIRD_LABEL, birdType, needsWingband, bandLabel, parseBand, parseWeight, eventType,
+  BIRD_TYPES, BIRD_LABEL, birdType, needsWingband, bandLabel, entryRef, parseBand, parseWeight, eventType,
   allowedTypes, weightRules,
 } = require('../lib/common');
 const { addAudit, bumpVersion } = require('./audit');
@@ -23,35 +23,44 @@ const birdInputs = (body) => ({
 });
 
 const fightLabel = (n) => (n == null ? '' : `Fight #${pad(n)}`);
-/** How a bird is named in messages: "Legband 012", or "Wingband 005" / "Bird 2" before its legband is on. */
-const birdWord = (lb) => (lb.number ? `Legband ${lb.number}` : lb.wingband ? `Wingband ${lb.wingband}` : `Bird ${lb.slot}`);
+/**
+ * How a bird is named in messages: "Legband 012", or "Wingband 005" / "Bird 2" before its legband is on
+ * ("Bird E12-2" when the entry is known).
+ */
+const birdWord = (lb, entry = null) => (lb.number ? `Legband ${lb.number}` : lb.wingband ? `Wingband ${lb.wingband}` : `Bird ${entry ? entryRef(entry.entryNumber, lb.slot) : lb.slot}`);
 
 /** Build a lookup-friendly description of a bird from a data snapshot. */
 function describeLegband(data, lb) {
   const entry = data.entries.find((e) => e.id === lb.entryId);
   const participant = entry && data.participants.find((p) => p.id === entry.participantId);
   const match = lb.matchId ? data.matches.find((m) => m.id === lb.matchId) : null;
-  let available = lb.status === 'AVAILABLE' && entry && entry.status === 'ACTIVE' && !!lb.number;
-  let reason = null;
-  if (match && match.status !== 'CANCELLED') reason = `${birdWord(lb)} is already matched in ${fightLabel(match.fightNumber)}.`;
-  else if (match && match.status === 'CANCELLED') reason = `${birdWord(lb)} was in cancelled ${fightLabel(match.fightNumber)} and can no longer be used.`;
-  else if (lb.status === 'WITHDRAWN' || (entry && entry.status === 'WITHDRAWN')) reason = `${birdWord(lb)} is withdrawn.`;
-  else if (lb.status !== 'AVAILABLE') reason = `${birdWord(lb)} is ${lb.status.toLowerCase()}.`;
-  else if (!lb.number) reason = `${birdWord(lb)} has no legband yet. Add the legband in Registration first.`;
-  // Derby: an entry fights only once all of its birds are registered with their legbands.
-  let incomplete = false;
   const ev = data.events.find((e) => e.id === lb.eventId);
-  if (!reason && entry && eventType(ev) === 'DERBY') {
+  // Derby birds may fight without a band: they are then named by entry and bird number (E12-2).
+  const derby = eventType(ev) === 'DERBY';
+  const label = derby && entry ? bandLabel(lb, entry.entryNumber) : (lb.number || null);
+  const word = birdWord(lb, entry);
+  let available = lb.status === 'AVAILABLE' && entry && entry.status === 'ACTIVE' && (derby || !!lb.number);
+  let reason = null;
+  if (match && match.status !== 'CANCELLED') reason = `${word} is already matched in ${fightLabel(match.fightNumber)}.`;
+  else if (match && match.status === 'CANCELLED') reason = `${word} was in cancelled ${fightLabel(match.fightNumber)} and can no longer be used.`;
+  else if (lb.status === 'WITHDRAWN' || (entry && entry.status === 'WITHDRAWN')) reason = `${word} is withdrawn.`;
+  else if (lb.status !== 'AVAILABLE') reason = `${word} is ${lb.status.toLowerCase()}.`;
+  else if (!lb.number && !derby) reason = `${word} has no legband yet. Add the legband in Registration first.`;
+  // Derby: an entry fights only once all of its birds are registered (with or without bands).
+  let incomplete = false;
+  if (!reason && entry && derby) {
     const need = perEntry(ev);
-    const ready = data.legbands.filter((l) => l.entryId === entry.id && l.number).length;
+    const ready = data.legbands.filter((l) => l.entryId === entry.id).length;
     if (ready < need) {
       incomplete = true;
-      reason = `Entry #${entry.entryNumber} (${entry.entryName}) has ${ready} of ${need} birds with legbands. In a derby, all birds of an entry must be registered before it can fight.`;
+      reason = `Entry #${entry.entryNumber} (${entry.entryName}) has ${ready} of ${need} birds registered. In a derby, all birds of an entry must be registered before it can fight.`;
     }
   }
   if (reason) available = false;
   return {
     number: lb.number || null,
+    label,
+    ref: label || (lb.wingband ? `W${lb.wingband}` : null),
     type: birdType(lb),
     typeLabel: BIRD_LABEL[birdType(lb)],
     wingband: lb.wingband || null,
@@ -73,14 +82,25 @@ function describeLegband(data, lb) {
  */
 function findBand(d, ev, input) {
   const p = parseBand(input, ev.legbandWidth);
-  if (!p) return { error: 'INVALID', message: 'Enter a legband number (digits), or W and the wingband number (e.g. W7).' };
+  if (!p) return { error: 'INVALID', message: `Enter a legband number (digits), or W and the wingband number (e.g. W7)${eventType(ev) === 'DERBY' ? ', or entry and bird number (e.g. 12-2)' : ''}.` };
+  if (p.by === 'ENTRY') {
+    const entry = d.entries.find((e) => e.eventId === ev.id && e.entryNumber === p.entryNumber);
+    if (!entry) return { error: 'NOT_FOUND', message: `Entry #${p.entryNumber} is not registered.` };
+    const lb = d.legbands.find((l) => l.entryId === entry.id && l.slot === p.slot);
+    if (!lb) return { error: 'NOT_FOUND', message: `Entry #${p.entryNumber} has no bird ${p.slot}.` };
+    return { lb };
+  }
   const key = p.by === 'WING' ? 'wingband' : 'number';
   const lb = d.legbands.find((l) => l.eventId === ev.id && l[key] === p.number);
   if (!lb) return { error: 'NOT_FOUND', message: `${p.by === 'WING' ? 'Wingband' : 'Legband'} ${p.number} is not registered.` };
   return { lb };
 }
-/** A typed reference that finds this exact bird again. */
-const bandRef = (lb) => (lb.number ? lb.number : `W${lb.wingband}`);
+/** A typed reference that finds this exact bird again: its legband, else entry and bird number ("E12-2"). */
+const bandRef = (d, lb) => {
+  if (lb.number) return lb.number;
+  const entry = d.entries.find((e) => e.id === lb.entryId);
+  return entry ? entryRef(entry.entryNumber, lb.slot) : `W${lb.wingband}`;
+};
 
 function createRegistrationService(store, bus) {
   function requireEvent(d, eventId) {
@@ -132,7 +152,11 @@ function createRegistrationService(store, bus) {
       if (input) throw badRequest('A cock has no wingband; enter only its weight.', 'VALIDATION', { field });
       return null;
     }
-    if (!input) throw badRequest(`Enter the wingband number of the ${BIRD_LABEL[type].toLowerCase()}.`, 'WINGBAND_REQUIRED', { field });
+    if (!input) {
+      // Derby birds may have no band at all (they are matched as E12-2).
+      if (eventType(ev) === 'DERBY') return null;
+      throw badRequest(`Enter the wingband number of the ${BIRD_LABEL[type].toLowerCase()}.`, 'WINGBAND_REQUIRED', { field });
+    }
     const number = normalizeLegband(String(input).replace(/^\s*WB?[\s-]*/i, ''), ev.legbandWidth);
     if (!number) throw badRequest('Enter the wingband number (digits only).', 'INVALID_WINGBAND', { field });
     const clash = d.legbands.find((l) => l.eventId === ev.id && l.wingband === number && l.id !== exceptId);
@@ -183,15 +207,16 @@ function createRegistrationService(store, bus) {
       if (!lb) return null;
       const m = lb.matchId ? data.matches.find((x) => x.id === lb.matchId) : null;
       return {
-        number: lb.number || null, band: bandLabel(lb), type: birdType(lb), typeLabel: BIRD_LABEL[birdType(lb)],
+        number: lb.number || null, band: bandLabel(lb, eventType(ev) === 'DERBY' ? entry.entryNumber : null), type: birdType(lb), typeLabel: BIRD_LABEL[birdType(lb)],
         wingband: lb.wingband || null, weight: lb.weight == null ? null : lb.weight,
         status: lb.status, fightNumber: m ? m.fightNumber : null, matchStatus: m ? m.status : null,
       };
     };
     const n = Math.max(perEntry(ev), ...lbs.map((l) => l.slot));
     const slots = Array.from({ length: n }, (_, i) => slot(i + 1));
-    // Complete = every slot has a bird and every bird has its legband.
-    const displayStatus = entry.status === 'WITHDRAWN' ? 'WITHDRAWN' : (slots.every((s) => s && s.number) ? 'COMPLETE' : 'INCOMPLETE');
+    // Complete = every slot has a bird and every bird has its legband (derby: birds may fight without a band).
+    const derby = eventType(ev) === 'DERBY';
+    const displayStatus = entry.status === 'WITHDRAWN' ? 'WITHDRAWN' : (slots.every((s) => s && (derby || s.number)) ? 'COMPLETE' : 'INCOMPLETE');
     // legband1 … legbandN kept alongside the `legbands` list for older screens and reports.
     const named = Object.fromEntries(slots.map((s, i) => [`legband${i + 1}`, s]));
     return {
@@ -244,7 +269,7 @@ function createRegistrationService(store, bus) {
         .filter((x) => x.available)
         .map((x) => ({ ...x, diff: me.weight != null && x.weight != null ? Math.abs(x.weight - me.weight) : null }));
       if (byWeight) list = me.weight == null ? [] : list.filter((x) => x.diff != null && x.diff <= tol);
-      list.sort((a, b) => (a.diff ?? Infinity) - (b.diff ?? Infinity) || a.number.localeCompare(b.number));
+      list.sort((a, b) => (a.diff ?? Infinity) - (b.diff ?? Infinity) || a.ref.localeCompare(b.ref, undefined, { numeric: true }));
       return { bird: me, weightTolerance: tol, matchByWeight: byWeight, needsWeight: byWeight && me.weight == null, candidates: list.slice(0, Math.max(1, Math.min(Number(limit) || 30, 200))) };
     },
 
@@ -330,10 +355,12 @@ function createRegistrationService(store, bus) {
         let birds;
         if (manual) {
           // A bird is registered when anything of it was filled in (legband, wingband or weight).
+          // Derby: every row is a bird, since birds may have no band and the entry fights with all of them.
           const filled = (i) => inp.legbands[i] || inp.wingbands[i] || inp.weights[i];
           const extra = Array.from({ length: MAX_PER_ENTRY }, (_, i) => i).find((i) => i >= max && filled(i));
           if (extra !== undefined) throw badRequest(`This event has ${max} birds per entry.`, 'VALIDATION', { field: `legband${extra + 1}` });
-          birds = Array.from({ length: max }, (_, i) => i + 1).filter((s) => filled(s - 1)).map((s) => ({ slot: s }));
+          const derby = eventType(ev) === 'DERBY';
+          birds = Array.from({ length: max }, (_, i) => i + 1).filter((s) => derby || filled(s - 1)).map((s) => ({ slot: s }));
         } else {
           const count = Number(legbandCount ?? max);
           if (!(Number.isInteger(count) && count >= 1 && count <= max)) throw badRequest(`An entry has 1 to ${max} birds.`, 'VALIDATION', { field: 'legbandCount' });
@@ -394,9 +421,11 @@ function createRegistrationService(store, bus) {
         if (entry.status !== 'ACTIVE') throw badRequest('This entry is withdrawn.');
         const own = d.legbands.filter((l) => l.entryId === entry.id).sort((a, b) => a.slot - b.slot);
         const manual = isManual(ev);
-        if (manual && !String(typedNumber || '').trim()) throw badRequest('Type the legband number.', 'VALIDATION', { field: 'legband' });
-        const typed = manual ? String(typedNumber).trim() : null;
-        const waiting = own.find((l) => !l.number && l.status === 'AVAILABLE');
+        // Derby: a blank legband adds the next bird without a band.
+        const bandless = manual && eventType(ev) === 'DERBY' && !String(typedNumber || '').trim();
+        if (manual && !bandless && !String(typedNumber || '').trim()) throw badRequest('Type the legband number.', 'VALIDATION', { field: 'legband' });
+        const typed = manual && !bandless ? String(typedNumber).trim() : null;
+        const waiting = bandless ? null : own.find((l) => !l.number && l.status === 'AVAILABLE');
         let lb;
         if (waiting) {
           waiting.number = legbandFor(d, ev, typed, 'legband', waiting.id);
@@ -405,12 +434,12 @@ function createRegistrationService(store, bus) {
         } else {
           const max = perEntry(ev);
           const slot = Array.from({ length: max }, (_, i) => i + 1).find((s) => !own.some((l) => l.slot === s));
-          if (!slot) throw conflict(`This entry already has ${max} birds with legbands.`);
+          if (!slot) throw conflict(`This entry already has ${max} birds.`);
           const type = resolveType(ev, typeIn, null);
           const weight = resolveWeight(ev, weightIn, type, null);
           if (type === 'COCK' && weight == null && weightRequired(ev)) throw badRequest('Enter the weight: cocks are matched by weight.', 'WEIGHT_REQUIRED', { field: 'weight' });
           const wingband = resolveWingband(d, ev, wingIn ? String(wingIn).trim() : '', type, null);
-          lb = addBird(d, ev, entry.id, slot, { number: legbandFor(d, ev, typed, 'legband'), type, wingband, weight });
+          lb = addBird(d, ev, entry.id, slot, { number: bandless ? null : legbandFor(d, ev, typed, 'legband'), type, wingband, weight });
         }
         entry.updatedAt = now();
         bumpVersion(d, ev.id);
