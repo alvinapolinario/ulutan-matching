@@ -114,8 +114,13 @@ module.exports = function pageRoutes(services) {
     if (!req.currentEvent) return res.render('no-event', { title: 'Reports' });
     if (req.params.key === 'audit' && req.session.user.role !== 'ADMIN') throw new AppError(403, 'Only administrators can view the audit report.');
     const report = reports.build(req.params.key, req.currentEvent.id);
+    const safe = `${req.currentEvent.name}-${report.title}`.replace(/[^A-Za-z0-9-]+/g, '_');
+    if (req.query.format === 'xlsx') {
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="${safe}.xlsx"`);
+      return res.send(reports.toXlsx(report));
+    }
     if (req.query.format === 'csv') {
-      const safe = `${req.currentEvent.name}-${report.title}`.replace(/[^A-Za-z0-9-]+/g, '_');
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="${safe}.csv"`);
       return res.send(reports.toCsv(report));

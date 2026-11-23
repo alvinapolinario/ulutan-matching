@@ -7,7 +7,7 @@
   ['gamecocks', 'bi-feather', 'Gamecock List', 'Every gamecock: owner, entry, legband, status and opponent'],
   ['fights', 'bi-list-ol', 'Official Matching List', 'All official fights in fight-number order'],
   ['cancelled', 'bi-x-circle', 'Cancelled Matches', 'With who cancelled and why'],
-  ['sequence', 'bi-sort-numeric-down', 'Fight Sequence', 'Running order with results'],
+  ['sequence', 'bi-sort-numeric-down', 'Fight Sequence', 'Running order: Blue entry and weight vs Red weight and entry'],
   ['scores', 'bi-clipboard-data', 'Entry Scores', 'Every entry with one score box per cock (1, 0, ½)'],
   ['standings', 'bi-trophy', 'Standings', 'Points per entry: win 1, draw ½, loss 0'],
   ['summary', 'bi-clipboard-check', 'Event Summary', 'Totals for the event'],
@@ -26,11 +26,12 @@
       </div>
       <div class="mt-auto d-flex gap-2">
         <a class="btn btn-sm btn-dark" href="/reports/<%= key %>" target="_blank"><i class="bi bi-printer" aria-hidden="true"></i> View / Print</a>
+        <a class="btn btn-sm btn-outline-success" href="/reports/<%= key %>?format=xlsx"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
         <a class="btn btn-sm btn-outline-dark" href="/reports/<%= key %>?format=csv"><i class="bi bi-filetype-csv" aria-hidden="true"></i> CSV</a>
       </div>
     </div>
   </div>
   <% }) %>
 </div>
-<p class="small text-muted mt-3">CSV legband numbers are written so Excel and Google Sheets keep the leading zeros (001 stays 001).</p>
+<p class="small text-muted mt-3">Excel and CSV downloads keep the leading zeros of legband numbers (001 stays 001).</p>
 <%- include('partials/foot') %>

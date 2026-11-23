@@ -35,6 +35,34 @@ test('reports: all reports render; CSV keeps leading zeros; audit is admin-only'
   assert.equal((await op.agent.get('/reports/nope')).status, 404);
 });
 
+test('reports: fight sequence is Blue vs Red with weights; Excel download keeps leading zeros', async (t) => {
+  const ctx = await setup();
+  t.after(ctx.stop);
+  const op = await login(ctx, 'op', 'op1234');
+  const base = `/api/events/${ctx.eventId}`;
+  await op.post(`${base}/entries`, { participantName: 'Alvin', entryName: 'Red Farm' });
+  await op.post(`${base}/entries`, { participantName: 'Joel', entryName: 'Blue <Farm> & Co' });
+  await op.post(`${base}/matches`, { red: '001', blue: '003', idempotencyKey: 'seq-key-1' });
+
+  const seq = ctx.services.reports.build('sequence', ctx.eventId);
+  assert.deepEqual(seq.columns.map((c) => c.label), ['Fight #', 'Blue Entry Name', 'Weight (Blue)', 'VS', 'Weight (Red)', 'Red Entry Name']);
+  assert.deepEqual(seq.rows.map((r) => [r.fight, r.blueEntry, r.vs, r.redEntry]), [['001', 'Blue <Farm> & Co', 'VS', 'Red Farm']]);
+
+  const binary = (res, cb) => { const d = []; res.on('data', (c) => d.push(c)); res.on('end', () => cb(null, Buffer.concat(d))); };
+  const x = await op.agent.get('/reports/sequence?format=xlsx').buffer(true).parse(binary);
+  assert.equal(x.status, 200);
+  assert.match(x.headers['content-type'], /spreadsheetml\.sheet/);
+  assert.match(x.headers['content-disposition'], /\.xlsx"/);
+  assert.equal(x.body.subarray(0, 2).toString(), 'PK', 'a zip file');
+  const text = x.body.toString('utf8'); // stored (not compressed), so the XML is readable as is
+  assert.match(text, /<t xml:space="preserve">Fight #<\/t>/);
+  assert.match(text, /<t xml:space="preserve">Blue &lt;Farm&gt; &amp; Co<\/t>/);
+  assert.match(text, /<t xml:space="preserve">001<\/t>/, 'fight number stays 001');
+  const reg = await op.agent.get('/reports/registration?format=xlsx').buffer(true).parse(binary);
+  assert.match(reg.body.toString('utf8'), /<t xml:space="preserve">003<\/t>/, 'legband stays 003');
+  assert.equal(require('../src/lib/xlsx').crc32(Buffer.from('123456789')), 0xcbf43926);
+});
+
 test('pages: every operator page renders; display user is sent to /display', async (t) => {
   const ctx = await setup();
   t.after(ctx.stop);

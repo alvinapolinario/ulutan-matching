@@ -21,6 +21,7 @@
       <div class="small text-muted">Printed <%= printedAt.toLocaleString('en-PH') %> by <%= user.username %></div>
       <div class="d-print-none mt-2 d-flex gap-2 justify-content-end">
         <button class="btn btn-sm btn-dark" data-print><i class="bi bi-printer" aria-hidden="true"></i> Print</button>
+        <a class="btn btn-sm btn-outline-success" href="?format=xlsx"><i class="bi bi-file-earmark-excel" aria-hidden="true"></i> Excel</a>
         <a class="btn btn-sm btn-outline-dark" href="?format=csv"><i class="bi bi-filetype-csv" aria-hidden="true"></i> CSV</a>
       </div>
     </div>

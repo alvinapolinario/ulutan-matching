@@ -1,7 +1,6 @@
 'use strict';
 const { notFound, pad, points, perEntry, BIRD_LABEL } = require('../lib/common');
-
-const RESULT_LABEL = { RED: 'Red wins (1-0)', BLUE: 'Blue wins (0-1)', DRAW: 'Draw (½-½)' };
+const { toXlsx } = require('../lib/xlsx');
 
 function createReportService(store, { registration, matches }) {
   const userName = (id) => { const u = store.data.users.find((x) => x.id === id); return u ? u.username : ''; };
@@ -84,8 +83,20 @@ function createReportService(store, { registration, matches }) {
     sequence: {
       title: 'Fight Sequence',
       build(id) {
-        const rows = matches.list(id).filter((m) => m.status !== 'CANCELLED').map((m, i) => ({ order: i + 1, ...matchFlat(m), resultLabel: m.result ? RESULT_LABEL[m.result] : (m.isCurrent ? 'NOW FIGHTING' : '') }));
-        return { columns: [{ key: 'order', label: 'Order' }, ...matchCols, { key: 'resultLabel', label: 'Result' }], rows };
+        // Running order, Blue (Wala) on the left: Fight # | Blue entry | Blue weight | VS | Red weight | Red entry.
+        const rows = matches.list(id).filter((m) => m.status !== 'CANCELLED').map((m) => ({
+          fight: fight(m.fightNumber),
+          blueEntry: m.blue ? m.blue.entryName : '', blueWt: m.blue ? grams(m.blue.weight) : '',
+          vs: 'VS',
+          redWt: m.red ? grams(m.red.weight) : '', redEntry: m.red ? m.red.entryName : '',
+        }));
+        return {
+          columns: [
+            { key: 'fight', label: 'Fight #' }, { key: 'blueEntry', label: 'Blue Entry Name' }, { key: 'blueWt', label: 'Weight (Blue)' },
+            { key: 'vs', label: 'VS' }, { key: 'redWt', label: 'Weight (Red)' }, { key: 'redEntry', label: 'Red Entry Name' },
+          ],
+          rows,
+        };
       },
     },
     scores: {
@@ -167,6 +178,10 @@ function createReportService(store, { registration, matches }) {
         }).join(','));
       }
       return '﻿' + lines.join('\r\n') + '\r\n';
+    },
+    /** Excel workbook (.xlsx). Every cell is text, so legbands keep their leading zeros and nothing runs as a formula. */
+    toXlsx(report) {
+      return toXlsx({ sheetName: report.title, header: report.columns.map((c) => c.label), rows: report.rows.map((row) => report.columns.map((c) => row[c.key])) });
     },
   };
   return svc;
